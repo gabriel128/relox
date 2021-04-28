@@ -3,6 +3,8 @@ use std::fs;
 use std::io::{self};
 use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
+mod token;
+mod scanner;
 
 static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 
