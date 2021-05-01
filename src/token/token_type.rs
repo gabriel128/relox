@@ -11,8 +11,12 @@ pub enum SingleCharTokens {
     Minus,
     Plus,
     Semicolon,
-    Slash,
     Star,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SlashOrComment {
+    Slash
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,6 +35,7 @@ pub enum OneOrTwoCharTokens {
 pub enum TokenType {
     SingleChar(SingleCharTokens),
     OneOrTwoChar(OneOrTwoCharTokens),
+    SlashOrComment(SlashOrComment),
 
     // Literals.
     Identifier,
@@ -78,6 +83,9 @@ impl TokenType {
         char_to_enum.insert('<', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Less));
         char_to_enum.insert('>', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Greater));
 
+        // Slash
+        char_to_enum.insert('/', TokenType::SlashOrComment(SlashOrComment::Slash));
+
         char_to_enum.get(a_char).map (|the_type| the_type.clone())
     }
 
@@ -98,5 +106,12 @@ impl TokenType {
         } else {
             (fallback_token_type, first_char.to_string(), 1)
         }
+    }
+
+    pub fn is_comment(first_char: char, second_char: char) -> bool {
+
+        let res = first_char == '/' && second_char == '/';
+        eprintln!("Got here {}, {}, {}", res, first_char, second_char);
+        res
     }
 }
