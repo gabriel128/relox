@@ -2,11 +2,9 @@ use std::env;
 use std::fs;
 use std::io::{self};
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering};
+mod error_handler;
 mod token;
 mod scanner;
-
-static HAD_ERROR: AtomicBool = AtomicBool::new(false);
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -28,7 +26,7 @@ fn run_file(path: &str) {
     let contents = fs::read_to_string(path).expect("Couldn't read file");
     run(&contents);
 
-    if HAD_ERROR.load(Ordering::Relaxed) {
+    if error_handler::had_error() {
         process::exit(65);
     }
 }
@@ -44,11 +42,11 @@ fn run_prompt() -> io::Result<()> {
         if result == 0 {
             return Ok(());
         } else if buffer.eq("wot\n") {
-            error(0, "nope");
+            error_handler::error(0, "nope");
         } else {
             run(&buffer);
         }
-        HAD_ERROR.store(false, Ordering::Relaxed);
+        error_handler::set_error(false);
     }
 }
 
@@ -56,11 +54,3 @@ fn run(x: &str) {
     println!("Running: {}", x);
 }
 
-fn error(line: u32, message: &str) {
-    report(line, "", message);
-}
-
-fn report(line: u32, where_it_was: &str, message: &str) {
-    eprintln!("[line {}] Error{}: {}", line, where_it_was, message);
-    HAD_ERROR.store(true, Ordering::Relaxed);
-}

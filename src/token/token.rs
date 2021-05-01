@@ -1,6 +1,7 @@
 use crate::token::token_type::TokenType;
 use std::fmt;
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
@@ -9,8 +10,8 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Option<String>, line: usize) -> Self {
-        Token{ token_type, lexeme, literal, line }
+    pub fn new(token_type: TokenType, lexeme: &str, literal: Option<String>, line: usize) -> Self {
+        Token{ token_type, lexeme: lexeme.to_string(), literal, line }
     }
 }
 
