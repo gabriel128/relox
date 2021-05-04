@@ -42,6 +42,8 @@ pub enum TokenType {
     String,
     Number,
 
+    //
+
     // Keywords.
     And,
     Class,
@@ -61,6 +63,11 @@ pub enum TokenType {
     While,
 
     Eof,
+
+    // Skip
+    Skip,
+    // New Line
+    NewLine,
 }
 
 impl TokenType {
@@ -86,6 +93,17 @@ impl TokenType {
         // Slash
         char_to_enum.insert('/', TokenType::SlashOrComment(SlashOrComment::Slash));
 
+        // Skip
+        char_to_enum.insert(' ', TokenType::Skip);
+        char_to_enum.insert('\r', TokenType::Skip);
+        char_to_enum.insert('\t', TokenType::Skip);
+
+        // New Line
+        char_to_enum.insert('\n', TokenType::NewLine);
+
+        // Sring
+        char_to_enum.insert('"', TokenType::String);
+
         char_to_enum.get(a_char).map (|the_type| the_type.clone())
     }
 
@@ -109,9 +127,8 @@ impl TokenType {
     }
 
     pub fn is_comment(first_char: char, second_char: char) -> bool {
-
         let res = first_char == '/' && second_char == '/';
-        eprintln!("Got here {}, {}, {}", res, first_char, second_char);
+        // eprintln!("Got here {}, {}, {}", res, first_char, second_char);
         res
     }
 }
