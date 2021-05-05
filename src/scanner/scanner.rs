@@ -1,5 +1,5 @@
 use crate::error_handler;
-use crate::token::token::Token;
+use crate::token::token::{Token, Literal};
 use crate::token::token_type::TokenType;
 
 struct Scanner {
@@ -68,6 +68,7 @@ impl Scanner {
                 Some(TokenType::String) => self.handle_string(),
                 Some(TokenType::Skip) => {}
                 Some(TokenType::NewLine) => self.line += 1,
+                Some(TokenType::Number) => self.handle_number(),
                 Some(_token_type) => unimplemented!(),
                 None => error_handler::error(self.line, "Unexpected character"),
             }
@@ -102,6 +103,7 @@ impl Scanner {
         while let Some(current_char) = self.current_char() {
             if *current_char == '\n' {
                 self.line += 1;
+                self.advance();
             } else if *current_char != '"' {
                 self.advance();
             } else {
@@ -120,6 +122,40 @@ impl Scanner {
             None,
             self.line,
         ));
+    }
+
+    fn handle_number(&mut self) {
+        self.parse_number();
+
+        if let Some('.') = self.current_char() {
+            let next_char = self.source_chars.get(self.current_index + 1);
+            if let Some(next_char) = next_char {
+                if next_char.is_digit(10) {
+                   self.advance();
+                   self.parse_number();
+                }
+            }
+        }
+
+        let numstr = &self.substring_source(self.start, self.current_index);
+        let num: Result<f64, _> = self.substring_source(self.start, self.current_index).parse();
+
+        self.tokens.push(Token::new(
+            TokenType::Number,
+            numstr,
+            num.ok().map(|the_num| Literal::Double(the_num)),
+            self.line,
+        ));
+    }
+
+    fn parse_number(&mut self) {
+        while let Some(current_char) = self.current_char() {
+            if current_char.is_digit(10) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
     }
 
     fn substring_source(&self, start: usize, end: usize) -> String {
@@ -150,111 +186,5 @@ impl Scanner {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::token::token_type::*;
-
-    #[test]
-    fn single_chars() {
-        let mut scanner = Scanner::new("(".to_string());
-        scanner.scan_tokens();
-        let result = vec![
-            Token::new(
-                TokenType::SingleChar(SingleCharTokens::LeftParen),
-                "(",
-                None,
-                1,
-            ),
-            Token::new(TokenType::Eof, "", None, 1),
-        ];
-        assert_eq!(scanner.tokens, result);
-
-        let mut scanner = Scanner::new("()! \n  /  ".to_string());
-        scanner.scan_tokens();
-        let result = vec![
-            Token::new(
-                TokenType::SingleChar(SingleCharTokens::LeftParen),
-                "(",
-                None,
-                1,
-            ),
-            Token::new(
-                TokenType::SingleChar(SingleCharTokens::RightParen),
-                ")",
-                None,
-                1,
-            ),
-            Token::new(
-                TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
-                "!",
-                None,
-                1,
-            ),
-            Token::new(
-                TokenType::SlashOrComment(SlashOrComment::Slash),
-                "/",
-                None,
-                2,
-            ),
-            Token::new(TokenType::Eof, "", None, 2),
-        ];
-        assert_eq!(scanner.tokens, result);
-    }
-
-    #[test]
-    fn multiple_char() {
-        let mut scanner = Scanner::new("!<// blah blah blah".to_string());
-        scanner.scan_tokens();
-        let result = vec![
-            Token::new(
-                TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
-                "!",
-                None,
-                1,
-            ),
-            Token::new(
-                TokenType::OneOrTwoChar(OneOrTwoCharTokens::Less),
-                "<",
-                None,
-                1,
-            ),
-            Token::new(TokenType::Eof, "", None, 1),
-        ];
-        assert_eq!(scanner.tokens, result);
-
-        let mut scanner = Scanner::new("<= // blah \n !".to_string());
-        scanner.scan_tokens();
-        let result = vec![
-            Token::new(
-                TokenType::OneOrTwoChar(OneOrTwoCharTokens::LessEqual),
-                "<=",
-                None,
-                1,
-            ),
-            Token::new(
-                TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
-                "!",
-                None,
-                2,
-            ),
-            Token::new(TokenType::Eof, "", None, 2),
-        ];
-        assert_eq!(scanner.tokens, result);
-    }
-
-    #[test]
-    fn strings() {
-        let mut scanner = Scanner::new("\"whatever )\"".to_string());
-        scanner.scan_tokens();
-        let result = vec![
-            Token::new(
-                TokenType::String,
-                "whatever )",
-                None,
-                1,
-            ),
-            Token::new(TokenType::Eof, "", None, 1),
-        ];
-        assert_eq!(scanner.tokens, result);
-    }
-}
+#[path = "./test.rs"]
+mod test;

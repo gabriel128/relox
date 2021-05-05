@@ -103,6 +103,17 @@ impl TokenType {
 
         // Sring
         char_to_enum.insert('"', TokenType::String);
+        // Number
+        char_to_enum.insert('0', TokenType::Number);
+        char_to_enum.insert('1', TokenType::Number);
+        char_to_enum.insert('2', TokenType::Number);
+        char_to_enum.insert('3', TokenType::Number);
+        char_to_enum.insert('4', TokenType::Number);
+        char_to_enum.insert('5', TokenType::Number);
+        char_to_enum.insert('6', TokenType::Number);
+        char_to_enum.insert('7', TokenType::Number);
+        char_to_enum.insert('8', TokenType::Number);
+        char_to_enum.insert('9', TokenType::Number);
 
         char_to_enum.get(a_char).map (|the_type| the_type.clone())
     }
