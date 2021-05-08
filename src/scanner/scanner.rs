@@ -2,18 +2,17 @@ use crate::error_handler;
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenType;
 
-struct Scanner {
+pub struct Scanner {
     line: usize,
     start: usize,
     current_index: usize,
-    source: String,
     source_chars: Vec<char>,
     source_length: usize,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
 }
 
 impl Scanner {
-    fn new(source: String) -> Self {
+    pub fn new(source: String) -> Self {
         let tokens = Vec::new();
         let source_chars: Vec<char> = source.chars().collect();
         let source_length = source_chars.len();
@@ -21,7 +20,6 @@ impl Scanner {
         let current_index = 0;
         let start = 0;
         Scanner {
-            source,
             tokens,
             source_chars,
             source_length,
@@ -49,7 +47,7 @@ impl Scanner {
                 Some(token_type) => error_handler::error(self.line, &format!("Unexpected token {:?}", token_type)),
                 None => {
                     if source_char.is_ascii_alphabetic() {
-                        self.handle_identifier();
+                        self.handle_keyword_or_identifier();
                     } else {
                         error_handler::error(self.line, "Unexpected character");
                     }
@@ -102,7 +100,11 @@ impl Scanner {
         self.source_chars.get(self.current_index)
     }
 
-    fn handle_identifier(&mut self) {
+    fn next_char(&self) -> Option<&char> {
+        self.source_chars.get(self.current_index+1)
+    }
+
+    fn handle_keyword_or_identifier(&mut self) {
         while let Some(ref current_char) = self.current_char() {
             if current_char.is_ascii_alphanumeric() {
                 self.advance();
@@ -110,7 +112,6 @@ impl Scanner {
                 break;
             }
         }
-        println!("Start {}, current_index {}", self.start, self.current_index);
         let lexeme = self.substring_source(self.start, self.current_index);
 
         if let Some(keyword_type) = TokenType::keyword(&lexeme) {
@@ -161,8 +162,7 @@ impl Scanner {
         self.parse_number();
 
         if let Some('.') = self.current_char() {
-            let next_char = self.source_chars.get(self.current_index + 1);
-            if let Some(next_char) = next_char {
+            if let Some(next_char) = self.next_char() {
                 if next_char.is_digit(10) {
                     self.advance();
                     self.parse_number();
@@ -170,10 +170,12 @@ impl Scanner {
             }
         }
 
-        let numstr = &self.substring_source(self.start, self.current_index);
-        let num: Result<f64, _> = self
-            .substring_source(self.start, self.current_index)
-            .parse();
+        if let Some('.') = self.current_char() {
+            self.retreat();
+        }
+
+        let numstr = &self.substring_source(self.start, self.current_index+1);
+        let num: Result<f64, _> = numstr.parse();
 
         self.tokens.push(Token::new(
             TokenType::Number,
@@ -190,15 +192,33 @@ impl Scanner {
             } else {
                 break;
             }
+
+            if let Some(next_char) = self.next_char() {
+                if !next_char.is_digit(10) && *next_char != '.' {
+                    break;
+                }
+            }
         }
     }
 
     fn substring_source(&self, start: usize, end: usize) -> String {
-        self.source_chars[start..end].iter().collect::<String>()
+        if end >= self.source_chars.len() {
+            self.source_chars[start..].iter().collect::<String>()
+        } else {
+            self.source_chars[start..end].iter().collect::<String>()
+        }
     }
+
+    // fn substring_source(&self, start: usize, end: usize) -> String {
+    //     self.source_chars[start..end].iter().collect::<String>()
+    // }
 
     fn advance(&mut self) {
         self.current_index += 1;
+    }
+
+    fn retreat(&mut self) {
+        self.current_index -= 1;
     }
 
     fn add_token(&mut self, token_type: TokenType) {

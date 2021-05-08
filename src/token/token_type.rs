@@ -76,7 +76,7 @@ impl TokenType {
         char_to_enum.insert('(', TokenType::SingleChar(SingleCharTokens::LeftParen));
         char_to_enum.insert(')', TokenType::SingleChar(SingleCharTokens::RightParen));
         char_to_enum.insert('{', TokenType::SingleChar(SingleCharTokens::LeftBrace));
-        char_to_enum.insert('}', TokenType::SingleChar(SingleCharTokens::RightParen));
+        char_to_enum.insert('}', TokenType::SingleChar(SingleCharTokens::RightBrace));
         char_to_enum.insert(',', TokenType::SingleChar(SingleCharTokens::Comma));
         char_to_enum.insert('.', TokenType::SingleChar(SingleCharTokens::Dot));
         char_to_enum.insert('-', TokenType::SingleChar(SingleCharTokens::Minus));

@@ -1,3 +1,4 @@
+use crate::scanner::scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io::{self};
@@ -51,6 +52,10 @@ fn run_prompt() -> io::Result<()> {
 }
 
 fn run(x: &str) {
-    println!("Running: {}", x);
-}
+    let mut scanner = Scanner::new(x.to_string());
+    scanner.scan_tokens();
 
+    for token in scanner.tokens {
+        println!("{}", token);
+    }
+}

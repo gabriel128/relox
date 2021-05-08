@@ -130,11 +130,33 @@ fn numbers() {
     scanner.scan_tokens();
     let result = vec![
         Token::new(TokenType::Number, "11", Some(Literal::Double(11.0)), 1),
+        Token::new(TokenType::SingleChar(SingleCharTokens::Dot), ".", None, 1),
+        Token::new(TokenType::Eof, "", None, 1),
+    ];
+    assert_eq!(scanner.tokens, result);
+
+    let mut scanner = Scanner::new("11.12.".to_string());
+    scanner.scan_tokens();
+    let result = vec![
+        Token::new(TokenType::Number, "11.12", Some(Literal::Double(11.12)), 1),
+        Token::new(TokenType::SingleChar(SingleCharTokens::Dot), ".", None, 1),
         Token::new(TokenType::Eof, "", None, 1),
     ];
     assert_eq!(scanner.tokens, result);
 }
 
+#[test]
+fn number_followed_by_something() {
+    let mut scanner = Scanner::new("11(".to_string());
+    scanner.scan_tokens();
+    let result = vec![
+        Token::new(TokenType::Number, "11", Some(Literal::Double(11.0)), 1),
+        Token::new(TokenType::SingleChar(SingleCharTokens::LeftParen), "(", None, 1),
+        Token::new(TokenType::Eof, "", None, 1),
+    ];
+    assert_eq!(scanner.tokens, result);
+
+}
 
 #[test]
 fn keywords_and_identifiers() {
@@ -161,6 +183,19 @@ fn mix_of_stuff() {
         Token::new(TokenType::Number, "42", Some(Literal::Double(42.0)), 1),
         Token::new(TokenType::String, "sdfsdf", None, 1),
         Token::new(TokenType::SingleChar(SingleCharTokens::RightParen), ")", None, 2),
+        Token::new(TokenType::Eof, "", None, 2),
+    ];
+    assert_eq!(scanner.tokens, result);
+
+    let mut scanner = Scanner::new("or \"sdfsdf\")//nope\n}(".to_string());
+    scanner.scan_tokens();
+
+    let result = vec![
+        Token::new(TokenType::Or, "or", None, 1),
+        Token::new(TokenType::String, "sdfsdf", None, 1),
+        Token::new(TokenType::SingleChar(SingleCharTokens::RightParen), ")", None, 1),
+        Token::new(TokenType::SingleChar(SingleCharTokens::RightBrace), "}", None, 2),
+        Token::new(TokenType::SingleChar(SingleCharTokens::LeftParen), "(", None, 2),
         Token::new(TokenType::Eof, "", None, 2),
     ];
     assert_eq!(scanner.tokens, result);
