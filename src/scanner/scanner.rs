@@ -1,5 +1,5 @@
 use crate::error_handler;
-use crate::token::token::{Token, Literal};
+use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenType;
 
 struct Scanner {
@@ -32,45 +32,28 @@ impl Scanner {
     }
 
     pub fn scan_tokens(&mut self) {
-        while let Some(source_char) = self.source_chars.get(self.current_index) {
-            let next_char: Option<&char> = self.source_chars.get(self.current_index + 1);
-
+        while let Some(ref source_char) = self.source_chars.get(self.current_index) {
             self.start = self.current_index;
 
-            // println!("Parsing {}, current_index {}", source_char, current_index);
-            match TokenType::from_single_char(&source_char) {
+            // println!("Parsing {}, current_index {}", source_char, self.current_index);
+            match TokenType::from_single_char(source_char) {
                 Some(token_type @ TokenType::SingleChar(_)) => self.add_token(token_type),
-                Some(token_type @ TokenType::OneOrTwoChar(_)) => {
-                    if let Some(next_char) = next_char {
-                        let (token_type, lexeme, lexeme_length) =
-                            TokenType::from_two_chars(&source_char, &next_char, token_type);
-
-                        self.add_token_with_lexeme(token_type, &lexeme);
-
-                        if lexeme_length == 2 {
-                            self.advance();
-                        }
-                    } else {
-                        self.add_token(token_type);
-                    }
-                }
+                Some(token_type @ TokenType::OneOrTwoChar(_)) => self.handle_one_or_two(token_type),
                 Some(token_type @ TokenType::SlashOrComment(_)) => {
-                    if let Some(next_char) = next_char {
-                        if TokenType::is_comment(*source_char, *next_char) {
-                            self.handle_comment();
-                        } else {
-                            self.add_token(token_type);
-                        }
-                    } else {
-                        self.add_token(token_type);
-                    }
+                    self.handle_slash_or_comment(token_type)
                 }
                 Some(TokenType::String) => self.handle_string(),
                 Some(TokenType::Skip) => {}
                 Some(TokenType::NewLine) => self.line += 1,
                 Some(TokenType::Number) => self.handle_number(),
-                Some(_token_type) => unimplemented!(),
-                None => error_handler::error(self.line, "Unexpected character"),
+                Some(token_type) => error_handler::error(self.line, &format!("Unexpected token {:?}", token_type)),
+                None => {
+                    if source_char.is_ascii_alphabetic() {
+                        self.handle_identifier();
+                    } else {
+                        error_handler::error(self.line, "Unexpected character");
+                    }
+                }
             }
 
             self.advance();
@@ -79,12 +62,62 @@ impl Scanner {
             .push(Token::new(TokenType::Eof, "", None, self.line))
     }
 
+    fn handle_slash_or_comment(&mut self, token_type: TokenType) {
+        let current_char = self.current_char();
+        let next_char: Option<&char> = self.source_chars.get(self.current_index + 1);
+
+        if let (Some(next_char), Some(current_char)) = (next_char, current_char) {
+            if TokenType::is_comment(*current_char, *next_char) {
+                self.handle_comment();
+            } else {
+                self.add_token(token_type);
+            }
+        } else {
+            self.add_token(token_type);
+        }
+    }
+
+    fn handle_one_or_two(&mut self, token_type: TokenType) {
+        let current_char = self.current_char();
+        let next_char: Option<&char> = self.source_chars.get(self.current_index + 1);
+        if let (Some(next_char), Some(current_char)) = (next_char, current_char) {
+            let (token_type, lexeme, lexeme_length) =
+                TokenType::from_two_chars(current_char, &next_char, token_type);
+
+            self.add_token_with_lexeme(token_type, &lexeme);
+
+            if lexeme_length == 2 {
+                self.advance();
+            }
+        } else {
+            self.add_token(token_type);
+        }
+    }
+
     fn is_at_end(&self) -> bool {
         self.current_index >= self.source_length
     }
 
     fn current_char(&self) -> Option<&char> {
         self.source_chars.get(self.current_index)
+    }
+
+    fn handle_identifier(&mut self) {
+        while let Some(ref current_char) = self.current_char() {
+            if current_char.is_ascii_alphanumeric() {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        println!("Start {}, current_index {}", self.start, self.current_index);
+        let lexeme = self.substring_source(self.start, self.current_index);
+
+        if let Some(keyword_type) = TokenType::keyword(&lexeme) {
+            self.add_token_with_lexeme(keyword_type, &lexeme);
+        } else {
+            self.add_token_with_lexeme(TokenType::Identifier, &lexeme);
+        }
     }
 
     fn handle_comment(&mut self) {
@@ -118,7 +151,7 @@ impl Scanner {
 
         self.tokens.push(Token::new(
             TokenType::String,
-            &self.substring_source(self.start+1, self.current_index),
+            &self.substring_source(self.start + 1, self.current_index),
             None,
             self.line,
         ));
@@ -131,14 +164,16 @@ impl Scanner {
             let next_char = self.source_chars.get(self.current_index + 1);
             if let Some(next_char) = next_char {
                 if next_char.is_digit(10) {
-                   self.advance();
-                   self.parse_number();
+                    self.advance();
+                    self.parse_number();
                 }
             }
         }
 
         let numstr = &self.substring_source(self.start, self.current_index);
-        let num: Result<f64, _> = self.substring_source(self.start, self.current_index).parse();
+        let num: Result<f64, _> = self
+            .substring_source(self.start, self.current_index)
+            .parse();
 
         self.tokens.push(Token::new(
             TokenType::Number,
@@ -159,9 +194,7 @@ impl Scanner {
     }
 
     fn substring_source(&self, start: usize, end: usize) -> String {
-        self.source_chars[start..end]
-            .iter()
-            .collect::<String>()
+        self.source_chars[start..end].iter().collect::<String>()
     }
 
     fn advance(&mut self) {
@@ -171,9 +204,7 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         self.tokens.push(Token::new(
             token_type,
-            &self.source_chars[self.start..self.current_index + 1]
-                .iter()
-                .collect::<String>(),
+            &self.substring_source(self.start, self.current_index + 1),
             None,
             self.line,
         ));

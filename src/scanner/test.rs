@@ -137,6 +137,22 @@ fn numbers() {
 
 
 #[test]
+fn keywords_and_identifiers() {
+    let mut scanner = Scanner::new("or and     \n orfelia caca".to_string());
+    scanner.scan_tokens();
+
+    let result = vec![
+        Token::new(TokenType::Or, "or", None, 1),
+        Token::new(TokenType::And, "and", None, 1),
+        Token::new(TokenType::Identifier, "orfelia", None, 2),
+        Token::new(TokenType::Identifier, "caca", None, 2),
+        Token::new(TokenType::Eof, "", None, 2),
+    ];
+    assert_eq!(scanner.tokens, result);
+
+}
+
+#[test]
 fn mix_of_stuff() {
     let mut scanner = Scanner::new("  42 \"sdfsdf\" // nope \n )".to_string());
     scanner.scan_tokens();
