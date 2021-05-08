@@ -53,9 +53,8 @@ fn run_prompt() -> io::Result<()> {
 
 fn run(x: &str) {
     let mut scanner = Scanner::new(x.to_string());
-    scanner.scan_tokens();
-
-    for token in scanner.tokens {
+    
+    for token in scanner.scan_tokens() {
         println!("{}", token);
     }
 }

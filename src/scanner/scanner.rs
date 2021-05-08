@@ -8,7 +8,7 @@ pub struct Scanner {
     current_index: usize,
     source_chars: Vec<char>,
     source_length: usize,
-    pub tokens: Vec<Token>,
+    tokens: Vec<Token>,
 }
 
 impl Scanner {
@@ -29,7 +29,12 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) {
+    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+        self.run_scan();
+        &self.tokens
+    }
+
+    pub fn run_scan(&mut self) {
         while let Some(ref source_char) = self.source_chars.get(self.current_index) {
             self.start = self.current_index;
 
