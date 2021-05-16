@@ -1,5 +1,5 @@
 # Relox
 
-compiler/interpter for lox Programming language 
+compiler/interpreter for lox Programming language 
 
 WIP
