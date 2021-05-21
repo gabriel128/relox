@@ -6,6 +6,7 @@ use std::process;
 mod error_handler;
 mod token;
 mod scanner;
+mod grammar;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
