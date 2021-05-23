@@ -7,7 +7,7 @@ fn single_chars() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(
-            TokenType::SingleChar(SingleCharTokens::LeftParen),
+            TokenType::LeftParen,
             "(",
             None,
             1,
@@ -20,25 +20,25 @@ fn single_chars() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(
-            TokenType::SingleChar(SingleCharTokens::LeftParen),
+            TokenType::LeftParen,
             "(",
             None,
             1,
         ),
         Token::new(
-            TokenType::SingleChar(SingleCharTokens::RightParen),
+            TokenType::RightParen,
             ")",
             None,
             1,
         ),
         Token::new(
-            TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
+            TokenType::Bang,
             "!",
             None,
             1,
         ),
         Token::new(
-            TokenType::SlashOrComment(SlashOrComment::Slash),
+            TokenType::Slash,
             "/",
             None,
             2,
@@ -54,13 +54,13 @@ fn multiple_char() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(
-            TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
+            TokenType::Bang,
             "!",
             None,
             1,
         ),
         Token::new(
-            TokenType::OneOrTwoChar(OneOrTwoCharTokens::Less),
+            TokenType::Less,
             "<",
             None,
             1,
@@ -73,13 +73,13 @@ fn multiple_char() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(
-            TokenType::OneOrTwoChar(OneOrTwoCharTokens::LessEqual),
+            TokenType::LessEqual,
             "<=",
             None,
             1,
         ),
         Token::new(
-            TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang),
+            TokenType::Bang,
             "!",
             None,
             2,
@@ -130,7 +130,7 @@ fn numbers() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(TokenType::Number, "11", Some(Literal::Double(11.0)), 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::Dot), ".", None, 1),
+        Token::new(TokenType::Dot, ".", None, 1),
         Token::new(TokenType::Eof, "", None, 1),
     ];
     assert_eq!(*tokens, result);
@@ -139,7 +139,7 @@ fn numbers() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(TokenType::Number, "11.12", Some(Literal::Double(11.12)), 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::Dot), ".", None, 1),
+        Token::new(TokenType::Dot, ".", None, 1),
         Token::new(TokenType::Eof, "", None, 1),
     ];
     assert_eq!(*tokens, result);
@@ -151,7 +151,7 @@ fn number_followed_by_something() {
     let tokens = scanner.scan_tokens();
     let result = vec![
         Token::new(TokenType::Number, "11", Some(Literal::Double(11.0)), 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::LeftParen), "(", None, 1),
+        Token::new(TokenType::LeftParen, "(", None, 1),
         Token::new(TokenType::Eof, "", None, 1),
     ];
     assert_eq!(*tokens, result);
@@ -181,7 +181,7 @@ fn mix_of_stuff() {
     let result = vec![
         Token::new(TokenType::Number, "42", Some(Literal::Double(42.0)), 1),
         Token::new(TokenType::String, "sdfsdf", None, 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::RightParen), ")", None, 2),
+        Token::new(TokenType::RightParen, ")", None, 2),
         Token::new(TokenType::Eof, "", None, 2),
     ];
     assert_eq!(*tokens, result);
@@ -192,9 +192,9 @@ fn mix_of_stuff() {
     let result = vec![
         Token::new(TokenType::Or, "or", None, 1),
         Token::new(TokenType::String, "sdfsdf", None, 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::RightParen), ")", None, 1),
-        Token::new(TokenType::SingleChar(SingleCharTokens::RightBrace), "}", None, 2),
-        Token::new(TokenType::SingleChar(SingleCharTokens::LeftParen), "(", None, 2),
+        Token::new(TokenType::RightParen, ")", None, 1),
+        Token::new(TokenType::RightBrace, "}", None, 2),
+        Token::new(TokenType::LeftParen, "(", None, 2),
         Token::new(TokenType::Eof, "", None, 2),
     ];
     assert_eq!(*tokens, result);

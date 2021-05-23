@@ -1,6 +1,7 @@
 use crate::error_handler;
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenType;
+use crate::token::token_type::TokenKind;
 
 pub struct Scanner {
     line: usize,
@@ -40,15 +41,15 @@ impl Scanner {
 
             // println!("Parsing {}, current_index {}", source_char, self.current_index);
             match TokenType::from_single_char(source_char) {
-                Some(token_type @ TokenType::SingleChar(_)) => self.add_token(token_type),
-                Some(token_type @ TokenType::OneOrTwoChar(_)) => self.handle_one_or_two(token_type),
-                Some(token_type @ TokenType::SlashOrComment(_)) => {
+                Some((token_type, TokenKind::SingleChar)) => self.add_token(token_type),
+                Some((token_type, TokenKind::OneOrTwoChar)) => self.handle_one_or_two(token_type),
+                Some((token_type, TokenKind::SlashOrComment)) => {
                     self.handle_slash_or_comment(token_type)
                 }
-                Some(TokenType::String) => self.handle_string(),
-                Some(TokenType::Skip) => {}
-                Some(TokenType::NewLine) => self.line += 1,
-                Some(TokenType::Number) => self.handle_number(),
+                Some((TokenType::String, _)) => self.handle_string(),
+                Some((TokenType::Skip, _)) => {}
+                Some((TokenType::NewLine, _)) => self.line += 1,
+                Some((TokenType::Number, _)) => self.handle_number(),
                 Some(token_type) => error_handler::error(self.line, &format!("Unexpected token {:?}", token_type)),
                 None => {
                     if source_char.is_ascii_alphabetic() {
