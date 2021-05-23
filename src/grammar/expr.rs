@@ -4,28 +4,28 @@ pub trait Expr {}
 
 // Grouping def
 #[derive(Debug)]
-pub struct Grouping<T: Expr> {
-    expression: T
+pub struct Grouping<'a, T: Expr> {
+    expression: &'a T
 }
 
-impl<T: Expr> Expr for Grouping<T> {}
+impl<T: Expr> Expr for Grouping<'_, T> {}
 
-impl<T: Expr> Grouping<T> {
-    pub fn new(expression: T) -> Self {
+impl<'a, T: Expr> Grouping<'a, T> {
+    pub fn new(expression: &'a T) -> Self {
        Self{expression: expression}
     }
 }
 
 // Literal def
 #[derive(Debug)]
-pub struct Literal {
-    value: String
+pub struct Literal<'a> {
+    value: &'a str
 }
 
-impl Expr for Literal {}
+impl Expr for Literal<'_> {}
 
-impl Literal {
-    pub fn new(value: String) -> Self {
+impl<'a> Literal<'a> {
+    pub fn new(value: &'a str) -> Self {
        Literal{value}
     }
 }
@@ -66,8 +66,8 @@ mod tests {
 
     #[test]
     fn test_building_expr() {
-        let lit = Literal::new("bla".to_string());
-        let grouping = Grouping::new(lit);
+        let lit = Literal::new("bla");
+        let grouping = Grouping::new(&lit);
         assert!(true)
 
     }
