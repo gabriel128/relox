@@ -5,6 +5,7 @@ pub enum Expr<'a> {
     Literal(String),
     Grouping(Box<Expr<'a>>),
     Binary(Box<Expr<'a>>, &'a Token, Box<Expr<'a>>),
+    // More efficient ? Binary(Box<(Expr<'a>, Expr<'a>)>, &'a Token),
     // Binary(&'a Expr<'a>, &'a Token, &'a Expr<'a>),
     // Unary(&'a Token, &'a Expr<'a>)
 }

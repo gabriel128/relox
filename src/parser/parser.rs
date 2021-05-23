@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
-    current: usize,
+    cursor: usize,
 }
 
 // expression     → equality ;
@@ -22,39 +22,36 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Self {
         // println!("The tokens are {:?}", tokens);
-        Self { tokens, current: 0 }
+        Self { tokens, cursor: 0 }
     }
 
     // expression → equality ;
-    // fn expression(&mut self) -> &Expr {
-    //    self.equality()
-    // }
+    fn expression(&mut self) -> Expr {
+       let expr = self.equality();
+       *expr
+    }
 
     // equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    // fn equality(&mut self, current: usize) -> Rc<Expr> {
-    pub fn equality(&self, current: usize) -> (Box<Expr<'a>>, usize) {
-        let (left_expr, new_current) = self.comparison(current);
-
-        // println!("Current {:?}", current);
+    pub fn equality(&mut self) -> Box<Expr<'a>> {
+        let left_expr = self.comparison();
         let mut left_expr = left_expr;
-        let mut current = new_current;
-        while let Some(ref token) = self.tokens.get(current) {
+
+        while let Some(ref token) = self.tokens.get(self.cursor) {
             match token.token_type {
                 TokenType::Bang | TokenType::EqualEqual => {
-                    current += 1;
-                    let (right_expr, new_current) = self.comparison(current);
-                    left_expr = Box::new(Expr::Binary(left_expr, token, right_expr));
-                    current = new_current;
+                    self.cursor += 1;
+                    left_expr = Box::new(Expr::Binary(left_expr, token, self.comparison()));
                 }
                 _ => break
             }
         }
 
-       (left_expr, current)
+       left_expr
     }
 
-    pub fn comparison(&self, current: usize) -> (Box<Expr<'a>>, usize) {
-        (Box::new(Expr::Literal("1".to_string())), current+1)
+    pub fn comparison(&mut self) -> Box<Expr<'a>> {
+        self.cursor += 1;
+        Box::new(Expr::Literal("1".to_string()))
     }
 }
 
@@ -67,9 +64,9 @@ mod tests {
     fn test_parsing_equality() {
         let mut scanner = Scanner::new("1 == 2 == 3".to_string());
         let tokens = scanner.scan_tokens();
-        let parser = Parser::new(tokens);
-        let (res, _) = parser.equality(0);
-        println!("Check {:?}", *res);
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression();
+        println!("Check {:?}", res);
         // assert_eq!(Expr::Literal, *res)
     }
 }
