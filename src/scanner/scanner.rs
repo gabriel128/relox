@@ -180,6 +180,10 @@ impl Scanner {
             self.retreat();
         }
 
+        if let Some(' ') = self.current_char() {
+            self.retreat();
+        }
+
         let numstr = &self.substring_source(self.start, self.current_index+1);
         let num: Result<f64, _> = numstr.parse();
 

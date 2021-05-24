@@ -159,6 +159,20 @@ fn number_followed_by_something() {
 }
 
 #[test]
+fn number_sum() {
+    let mut scanner = Scanner::new("1 + 2".to_string());
+    let tokens = scanner.scan_tokens();
+    let result = vec![
+        Token::new(TokenType::Number, "1", Some(Literal::Double(1.0)), 1),
+        Token::new(TokenType::Plus, "+", None, 1),
+        Token::new(TokenType::Number, "2", Some(Literal::Double(2.0)), 1),
+        Token::new(TokenType::Eof, "", None, 1),
+    ];
+    assert_eq!(*tokens, result);
+
+}
+
+#[test]
 fn keywords_and_identifiers() {
     let mut scanner = Scanner::new("or and     \n orfelia caca".to_string());
     let tokens = scanner.scan_tokens();
