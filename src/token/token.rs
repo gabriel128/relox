@@ -5,13 +5,14 @@ use std::fmt;
 pub struct Token {
     pub token_type: TokenType,
     lexeme: String,
-    literal: Option<Literal>,
+    pub literal: Option<Literal>,
     line: usize
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
-    Double(f64)
+    Double(f64),
+    AString(String),
 }
 
 
