@@ -23,7 +23,7 @@ pub struct Parser<'a> {
 // Recursive descent implementation
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>) -> Self {
-        println!("The tokens are {:?}", tokens);
+        // println!("The tokens are {:?}", tokens);
         Self { tokens, cursor: 0 }
     }
 
@@ -112,7 +112,7 @@ impl<'a> Parser<'a> {
     pub fn unary(&mut self) -> Box<Expr<'a>> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match token.token_type {
-                TokenType::Bang | TokenType::Plus => {
+                TokenType::Bang | TokenType::Minus => {
                     self.cursor += 1;
                     Box::new(Expr::Unary(token, self.primary()))
                 },
@@ -171,12 +171,29 @@ mod tests {
     use crate::Scanner;
 
     #[test]
-    fn test_parsing_equality() {
-        // let mut scanner = Scanner::new("true == false == 1 + false".to_string());
-        let mut scanner = Scanner::new("1 + 2".to_string());
+    fn test_parsing_random0() {
+        let mut scanner = Scanner::new("5 == 1 + 2".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.expression();
-        println!("Check {:?}", res);
+        assert_eq!("(5 == (1 + 2))", format!("{}", res, ));
+    }
+
+    #[test]
+    fn test_parsing_random1() {
+        let mut scanner = Scanner::new("5 <=    1 - 2".to_string());
+        let tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression();
+        assert_eq!("(5 <= (1 - 2))", format!("{}", res, ));
+    }
+
+    #[test]
+    fn test_parsing_random2() {
+        let mut scanner = Scanner::new("false - 2 + 3 + 4 == 2 == true <= 10".to_string());
+        let tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression();
+        assert_eq!("(((((false - 2) + 3) + 4) == 2) == (true <= 10))", format!("{}", res, ));
     }
 }

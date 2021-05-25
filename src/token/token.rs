@@ -4,7 +4,7 @@ use std::fmt;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
-    lexeme: String,
+    pub lexeme: String,
     pub literal: Option<Literal>,
     line: usize
 }
