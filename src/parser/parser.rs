@@ -147,9 +147,10 @@ impl<'a> Parser<'a> {
                     let literal = Some(ExprLiteral::Number(*num_literal));
                     Box::new(Expr::Literal(literal))
                 }
-                (TokenType::String, Some(TokenLiteral::AString(num_literal))) => {
+                (TokenType::String, Some(TokenLiteral::String(string_literal))) => {
                     self.cursor += 1;
-                    let literal = Some(ExprLiteral::AString(num_literal.to_string()));
+                    let with_quotes = "\"".to_owned() + string_literal + "\"";
+                    let literal = Some(ExprLiteral::String(with_quotes.to_string()));
                     Box::new(Expr::Literal(literal))
                 }
                 token => {
@@ -195,5 +196,14 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let res = parser.expression();
         assert_eq!("(((((false - 2) + 3) + 4) == 2) == (true <= 10))", format!("{}", res, ));
+    }
+
+    #[test]
+    fn test_string_equality() {
+        let mut scanner = Scanner::new("\"epppa\" == \"epppa\"".to_string());
+        let tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression();
+        assert_eq!("(\"epppa\" == \"epppa\")", format!("{}", res, ));
     }
 }

@@ -156,10 +156,12 @@ impl Scanner {
             return;
         }
 
+        let the_string = &self.substring_source(self.start + 1, self.current_index);
+
         self.tokens.push(Token::new(
             TokenType::String,
-            &self.substring_source(self.start + 1, self.current_index),
-            None,
+            the_string,
+            Some(Literal::String(the_string.to_string())),
             self.line,
         ));
     }

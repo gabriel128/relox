@@ -4,7 +4,7 @@ use crate::token::token::Token;
 #[derive(Debug, PartialEq)]
 pub enum ExprLiteral {
    Bool(bool),
-   AString(String),
+   String(String),
    Number(f64),
 }
 
@@ -26,7 +26,7 @@ impl fmt::Display for Expr<'_> {
             Expr::Literal(None) => write!(f, "null"),
             Expr::Literal(Some(ExprLiteral::Bool(a_bool))) => write!(f, "{}", a_bool),
             Expr::Literal(Some(ExprLiteral::Number(num))) => write!(f, "{}", num),
-            Expr::Literal(Some(ExprLiteral::AString(a_string))) => write!(f, "{}", a_string),
+            Expr::Literal(Some(ExprLiteral::String(a_string))) => write!(f, "{}", a_string),
          }
     }
 }

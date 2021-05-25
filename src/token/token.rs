@@ -12,7 +12,7 @@ pub struct Token {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Double(f64),
-    AString(String),
+    String(String),
 }
 
 
