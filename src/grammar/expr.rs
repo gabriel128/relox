@@ -21,7 +21,7 @@ impl fmt::Display for Expr<'_> {
      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
          match self {
             Expr::Binary(left, token, right) => write!(f, "({} {} {})", left, token.lexeme, right),
-            Expr::Grouping(val) => write!(f, "({})", val),
+            Expr::Grouping(val) => write!(f, "(grouping {})", val),
             Expr::Unary(token, right) => write!(f, "{}{}", token.lexeme, right),
             Expr::Literal(None) => write!(f, "null"),
             Expr::Literal(Some(ExprLiteral::Bool(a_bool))) => write!(f, "{}", a_bool),

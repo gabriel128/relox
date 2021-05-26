@@ -7,7 +7,7 @@ pub fn error(line: usize, message: &str) {
 }
 
 pub fn report(line: usize, where_it_was: &str, message: &str) {
-    eprintln!("[line {}] Error{}: {}", line, where_it_was, message);
+    eprintln!("[line {}] Error {}: {}", line, where_it_was, message);
     HAD_ERROR.store(true, Ordering::Relaxed);
 }
 
