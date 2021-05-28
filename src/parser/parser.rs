@@ -1,8 +1,8 @@
 use crate::error_handler;
-use crate::grammar::expr::ExprLiteral;
 use crate::grammar::expr::Expr;
-use crate::token::token::Token;
+use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Literal as TokenLiteral;
+use crate::token::token::Token;
 use crate::token::token_type::TokenType;
 
 pub struct Parser<'a> {
@@ -27,106 +27,82 @@ impl<'a> Parser<'a> {
         Self { tokens, cursor: 0 }
     }
 
+    pub fn parse(&mut self) -> Result<Expr<'a>, String> {
+        let expr = self.expression()?;
+        println!("ALL {:?}", expr);
+        Ok(*expr)
+    }
+
+    fn one_or_many<F>(&mut self, token_types: Vec<TokenType>, mut f: F,) -> Result<Box<Expr<'a>>, String>
+    where
+        F: FnMut(&mut Self) -> Result<Box<Expr<'a>>, String>,
+    {
+        let left_expr = f(self)?;
+        let mut left_expr = left_expr;
+
+        while let Some(ref token) = self.tokens.get(self.cursor) {
+            if token_types.contains(&token.token_type) {
+                self.cursor += 1;
+                left_expr = Box::new(Expr::Binary(left_expr, token, f(self)?));
+            } else {
+                break;
+            }
+        }
+
+        Ok(left_expr)
+    }
+
     // expression → equality ;
     fn expression(&mut self) -> Result<Box<Expr<'a>>, String> {
-        let expr = self.equality()?;
-        Ok(expr)
+        self.equality()
     }
 
     // equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    pub fn equality(&mut self) -> Result<Box<Expr<'a>>, String> {
-        let left_expr = self.comparison()?;
-        let mut left_expr = left_expr;
-
-        while let Some(ref token) = self.tokens.get(self.cursor) {
-            match token.token_type {
-                TokenType::Bang | TokenType::EqualEqual => {
-                    self.cursor += 1;
-                    left_expr = Box::new(Expr::Binary(left_expr, token, self.comparison()?));
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left_expr)
+    fn equality(&mut self) -> Result<Box<Expr<'a>>, String> {
+        let token_types = vec![TokenType::Bang, TokenType::EqualEqual];
+        self.one_or_many(token_types, |the_self| the_self.comparison())
     }
 
     // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    pub fn comparison(&mut self) -> Result<Box<Expr<'a>>, String> {
-        let left_expr = self.term()?;
-        let mut left_expr = left_expr;
-
-        while let Some(ref token) = self.tokens.get(self.cursor) {
-            match token.token_type {
-                TokenType::Greater
-                | TokenType::GreaterEqual
-                | TokenType::Less
-                | TokenType::LessEqual => {
-                    self.cursor += 1;
-                    left_expr = Box::new(Expr::Binary(left_expr, token, self.term()?));
-
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left_expr)
+    fn comparison(&mut self) -> Result<Box<Expr<'a>>, String> {
+        let token_types = vec![
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ];
+        self.one_or_many(token_types, |the_self| the_self.term())
     }
 
     // term → factor ( ( "-" | "+" ) factor )* ;
-    pub fn term(&mut self) -> Result<Box<Expr<'a>>, String> {
-        let left_expr = self.factor()?;
-        let mut left_expr = left_expr;
-
-        while let Some(ref token) = self.tokens.get(self.cursor) {
-            match token.token_type {
-                TokenType::Minus | TokenType::Plus => {
-                    self.cursor += 1;
-                    left_expr = Box::new(Expr::Binary(left_expr, token, self.factor()?));
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left_expr)
+    fn term(&mut self) -> Result<Box<Expr<'a>>, String> {
+        let token_types = vec![TokenType::Minus, TokenType::Plus];
+        self.one_or_many(token_types, |the_self| the_self.factor())
     }
 
     // factor         → unary ( ( "/" | "*" ) unary )* ;
-    pub fn factor(&mut self) -> Result<Box<Expr<'a>>, String> {
-        let left_expr = self.unary()?;
-        let mut left_expr = left_expr;
-
-        while let Some(ref token) = self.tokens.get(self.cursor) {
-            match token.token_type {
-                TokenType::Minus | TokenType::Plus => {
-                    self.cursor += 1;
-                    left_expr = Box::new(Expr::Binary(left_expr, token, self.unary()?));
-                }
-                _ => break,
-            }
-        }
-
-        Ok(left_expr)
+    fn factor(&mut self) -> Result<Box<Expr<'a>>, String> {
+        let token_types = vec![TokenType::Star, TokenType::Slash];
+        self.one_or_many(token_types, |the_self| the_self.unary())
     }
 
     // unary → ( "!" | "-" ) unary | primary ;
-    pub fn unary(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn unary(&mut self) -> Result<Box<Expr<'a>>, String> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match token.token_type {
                 TokenType::Bang | TokenType::Minus => {
                     self.cursor += 1;
                     Ok(Box::new(Expr::Unary(token, self.primary()?)))
-                },
-                _ => self.primary()
+                }
+                _ => self.primary(),
             }
         } else {
             self.primary()
         }
-
     }
 
     // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
-    pub fn primary(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn primary(&mut self) -> Result<Box<Expr<'a>>, String> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
@@ -153,23 +129,21 @@ impl<'a> Parser<'a> {
                     let with_quotes = "\"".to_owned() + string_literal + "\"";
                     let literal = Some(ExprLiteral::String(with_quotes.to_string()));
                     Ok(Box::new(Expr::Literal(literal)))
-                },
+                }
                 (TokenType::LeftParen, _) => {
                     self.cursor += 1;
                     let expr = self.expression()?;
-                    self.consume(TokenType::RightParen, "There should be a ')' after expression, duh.")?;
+                    self.consume(
+                        TokenType::RightParen,
+                        "There should be a ')' after expression, duh.",
+                    )?;
                     Ok(Box::new(Expr::Grouping(expr)))
-                },
-                _token => {
-                    Err(format!("Parser Error: got this {:?}", token))
-                    // self.cursor += 1;
-                    // error_handler::error(0, "Unterminate string");
-                    // Box::new(Expr::Literal(None))
                 }
+                _token => Err(format!("Parser Error: got this {:?}", token)),
             }
         } else {
             panic!("Out of bounds")
-         }
+        }
     }
 
     fn consume(&mut self, token_type: TokenType, message: &str) -> Result<(), String> {
@@ -201,8 +175,8 @@ mod tests {
         let mut scanner = Scanner::new("5 == 1 + 2".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression();
-        assert_eq!("(5 == (1 + 2))", format!("{}", res.unwrap(), ));
+        let res = parser.parse();
+        assert_eq!("(5 == (1 + 2))", format!("{}", res.unwrap(),));
     }
 
     #[test]
@@ -210,8 +184,8 @@ mod tests {
         let mut scanner = Scanner::new("5 <=    1 - 2".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression();
-        assert_eq!("(5 <= (1 - 2))", format!("{}", res.unwrap(), ));
+        let res = parser.parse();
+        assert_eq!("(5 <= (1 - 2))", format!("{}", res.unwrap(),));
     }
 
     #[test]
@@ -219,8 +193,11 @@ mod tests {
         let mut scanner = Scanner::new("false - 2 + 3 + 4 == 2 == true <= 10".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression();
-        assert_eq!("(((((false - 2) + 3) + 4) == 2) == (true <= 10))", format!("{}", res.unwrap(), ));
+        let res = parser.parse();
+        assert_eq!(
+            "(((((false - 2) + 3) + 4) == 2) == (true <= 10))",
+            format!("{}", res.unwrap(),)
+        );
     }
 
     #[test]
@@ -228,8 +205,8 @@ mod tests {
         let mut scanner = Scanner::new("\"epppa\" == \"epppa\"".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression();
-        assert_eq!("(\"epppa\" == \"epppa\")", format!("{}", res.unwrap(), ));
+        let res = parser.parse();
+        assert_eq!("(\"epppa\" == \"epppa\")", format!("{}", res.unwrap(),));
     }
 
     #[test]
@@ -237,8 +214,8 @@ mod tests {
         let mut scanner = Scanner::new("1 == (1 + 2)".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression();
-        assert_eq!("(1 == (grouping (1 + 2)))", format!("{}", res.unwrap(), ));
+        let res = parser.parse();
+        assert_eq!("(1 == (grouping (1 + 2)))", format!("{}", res.unwrap(),));
     }
 
     #[test]
@@ -246,7 +223,7 @@ mod tests {
         let mut scanner = Scanner::new("true == (false == true".to_string());
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res = parser.expression().expect_err("should've been an error");
+        let res = parser.parse().expect_err("should've been an error");
         assert_eq!("Parser Error", res);
     }
 }
