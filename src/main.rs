@@ -1,5 +1,6 @@
 #![warn(missing_debug_implementations)]
 
+use crate::parser::parser::Parser;
 use crate::scanner::scanner::Scanner;
 use std::env;
 use std::fs;
@@ -43,7 +44,6 @@ fn run_prompt() -> io::Result<()> {
 
         let mut buffer = String::new();
         let result = io::stdin().read_line(&mut buffer)?;
-        println!("Buffer {}", buffer);
         if result == 0 {
             return Ok(());
         } else if buffer.eq("wot\n") {
@@ -57,8 +57,7 @@ fn run_prompt() -> io::Result<()> {
 
 fn run(input: &str) {
     let mut scanner = Scanner::new(input.to_string());
-    
-    for token in scanner.scan_tokens() {
-        println!("{}", token);
-    }
+    let mut parser = Parser::new(scanner.scan_tokens());
+    let res = parser.parse();
+    println!("{}", res.unwrap());
 }

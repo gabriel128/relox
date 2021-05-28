@@ -29,7 +29,6 @@ impl<'a> Parser<'a> {
 
     pub fn parse(&mut self) -> Result<Expr<'a>, String> {
         let expr = self.expression()?;
-        println!("ALL {:?}", expr);
         Ok(*expr)
     }
 
