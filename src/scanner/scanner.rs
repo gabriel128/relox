@@ -1,6 +1,7 @@
 use crate::error_handler;
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenType;
+use crate::token::token_type::TokenKind;
 
 pub struct Scanner {
     line: usize,
@@ -40,15 +41,15 @@ impl Scanner {
 
             // println!("Parsing {}, current_index {}", source_char, self.current_index);
             match TokenType::from_single_char(source_char) {
-                Some(token_type @ TokenType::SingleChar(_)) => self.add_token(token_type),
-                Some(token_type @ TokenType::OneOrTwoChar(_)) => self.handle_one_or_two(token_type),
-                Some(token_type @ TokenType::SlashOrComment(_)) => {
+                Some((token_type, TokenKind::SingleChar)) => self.add_token(token_type),
+                Some((token_type, TokenKind::OneOrTwoChar)) => self.handle_one_or_two(token_type),
+                Some((token_type, TokenKind::SlashOrComment)) => {
                     self.handle_slash_or_comment(token_type)
                 }
-                Some(TokenType::String) => self.handle_string(),
-                Some(TokenType::Skip) => {}
-                Some(TokenType::NewLine) => self.line += 1,
-                Some(TokenType::Number) => self.handle_number(),
+                Some((TokenType::String, _)) => self.handle_string(),
+                Some((TokenType::Skip, _)) => {}
+                Some((TokenType::NewLine, _)) => self.line += 1,
+                Some((TokenType::Number, _)) => self.handle_number(),
                 Some(token_type) => error_handler::error(self.line, &format!("Unexpected token {:?}", token_type)),
                 None => {
                     if source_char.is_ascii_alphabetic() {
@@ -155,26 +156,32 @@ impl Scanner {
             return;
         }
 
+        let the_string = &self.substring_source(self.start + 1, self.current_index);
+
         self.tokens.push(Token::new(
             TokenType::String,
-            &self.substring_source(self.start + 1, self.current_index),
-            None,
+            the_string,
+            Some(Literal::String(the_string.to_string())),
             self.line,
         ));
     }
 
     fn handle_number(&mut self) {
-        self.parse_number();
+        let mut got_a_dot = false;
 
-        if let Some('.') = self.current_char() {
-            if let Some(next_char) = self.next_char() {
-                if next_char.is_digit(10) {
-                    self.advance();
-                    self.parse_number();
-                }
+        while let Some(next_char) = self.next_char() {
+            if next_char.is_digit(10) {
+                self.advance();
+            }  else if *next_char == '.' && !got_a_dot {
+                got_a_dot = true;
+                self.advance();
+            } else {
+                break;
             }
         }
 
+        // if the last char is a dot it means that it's  a number like 11.
+        // so we retreat so the dot gets parsed as its own
         if let Some('.') = self.current_char() {
             self.retreat();
         }
@@ -190,22 +197,6 @@ impl Scanner {
         ));
     }
 
-    fn parse_number(&mut self) {
-        while let Some(current_char) = self.current_char() {
-            if current_char.is_digit(10) {
-                self.advance();
-            } else {
-                break;
-            }
-
-            if let Some(next_char) = self.next_char() {
-                if !next_char.is_digit(10) && *next_char != '.' {
-                    break;
-                }
-            }
-        }
-    }
-
     fn substring_source(&self, start: usize, end: usize) -> String {
         if end >= self.source_chars.len() {
             self.source_chars[start..].iter().collect::<String>()
@@ -213,10 +204,6 @@ impl Scanner {
             self.source_chars[start..end].iter().collect::<String>()
         }
     }
-
-    // fn substring_source(&self, start: usize, end: usize) -> String {
-    //     self.source_chars[start..end].iter().collect::<String>()
-    // }
 
     fn advance(&mut self) {
         self.current_index += 1;

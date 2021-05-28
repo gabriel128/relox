@@ -1,3 +1,5 @@
+#![warn(missing_debug_implementations)]
+
 use crate::scanner::scanner::Scanner;
 use std::env;
 use std::fs;
@@ -6,6 +8,8 @@ use std::process;
 mod error_handler;
 mod token;
 mod scanner;
+mod grammar;
+mod parser;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();

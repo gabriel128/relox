@@ -1,7 +1,21 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SingleCharTokens {
+pub enum TokenType {
+    // Slash Or Comment
+    Slash,
+
+    // One Or two Char
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+
+    // SingleChar
     LeftParen,
     RightParen,
     LeftBrace,
@@ -12,30 +26,6 @@ pub enum SingleCharTokens {
     Plus,
     Semicolon,
     Star,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SlashOrComment {
-    Slash
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OneOrTwoCharTokens {
-    Bang,
-    BangEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenType {
-    SingleChar(SingleCharTokens),
-    OneOrTwoChar(OneOrTwoCharTokens),
-    SlashOrComment(SlashOrComment),
 
     // Literals.
     Identifier,
@@ -70,60 +60,70 @@ pub enum TokenType {
     NewLine,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenKind {
+    OneOrTwoChar,
+    SingleChar,
+    SlashOrComment,
+    NoOp,
+    Rest
+}
+
 impl TokenType {
-    pub fn from_single_char(a_char: &char) -> Option<TokenType> {
-        let mut char_to_enum = HashMap::<char, TokenType>::new();
-        char_to_enum.insert('(', TokenType::SingleChar(SingleCharTokens::LeftParen));
-        char_to_enum.insert(')', TokenType::SingleChar(SingleCharTokens::RightParen));
-        char_to_enum.insert('{', TokenType::SingleChar(SingleCharTokens::LeftBrace));
-        char_to_enum.insert('}', TokenType::SingleChar(SingleCharTokens::RightBrace));
-        char_to_enum.insert(',', TokenType::SingleChar(SingleCharTokens::Comma));
-        char_to_enum.insert('.', TokenType::SingleChar(SingleCharTokens::Dot));
-        char_to_enum.insert('-', TokenType::SingleChar(SingleCharTokens::Minus));
-        char_to_enum.insert('+', TokenType::SingleChar(SingleCharTokens::Plus));
-        char_to_enum.insert(';', TokenType::SingleChar(SingleCharTokens::Semicolon));
-        char_to_enum.insert('*', TokenType::SingleChar(SingleCharTokens::Star));
+    pub fn from_single_char(a_char: &char) -> Option<(TokenType, TokenKind)> {
+        let mut char_to_enum = HashMap::<char, (TokenType, TokenKind)>::new();
+        char_to_enum.insert('(', (TokenType::LeftParen, TokenKind::SingleChar));
+        char_to_enum.insert(')', (TokenType::RightParen, TokenKind::SingleChar));
+        char_to_enum.insert('{', (TokenType::LeftBrace, TokenKind::SingleChar));
+        char_to_enum.insert('}', (TokenType::RightBrace, TokenKind::SingleChar));
+        char_to_enum.insert(',', (TokenType::Comma, TokenKind::SingleChar));
+        char_to_enum.insert('.', (TokenType::Dot, TokenKind::SingleChar));
+        char_to_enum.insert('-', (TokenType::Minus, TokenKind::SingleChar));
+        char_to_enum.insert('+', (TokenType::Plus, TokenKind::SingleChar));
+        char_to_enum.insert(';', (TokenType::Semicolon, TokenKind::SingleChar));
+        char_to_enum.insert('*', (TokenType::Star, TokenKind::SingleChar));
 
         // One or More Chars
-        char_to_enum.insert('!', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Bang));
-        char_to_enum.insert('=', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Equal));
-        char_to_enum.insert('<', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Less));
-        char_to_enum.insert('>', TokenType::OneOrTwoChar(OneOrTwoCharTokens::Greater));
+        // 
+        char_to_enum.insert('!', (TokenType::Bang, TokenKind::OneOrTwoChar));
+        char_to_enum.insert('=', (TokenType::Equal, TokenKind::OneOrTwoChar));
+        char_to_enum.insert('<', (TokenType::Less, TokenKind::OneOrTwoChar));
+        char_to_enum.insert('>', (TokenType::Greater, TokenKind::OneOrTwoChar));
 
         // Slash
-        char_to_enum.insert('/', TokenType::SlashOrComment(SlashOrComment::Slash));
+        char_to_enum.insert('/', (TokenType::Slash, TokenKind::SlashOrComment));
 
         // Skip
-        char_to_enum.insert(' ', TokenType::Skip);
-        char_to_enum.insert('\r', TokenType::Skip);
-        char_to_enum.insert('\t', TokenType::Skip);
+        char_to_enum.insert(' ', (TokenType::Skip, TokenKind::NoOp));
+        char_to_enum.insert('\r', (TokenType::Skip, TokenKind::NoOp));
+        char_to_enum.insert('\t', (TokenType::Skip, TokenKind::NoOp));
 
         // New Line
-        char_to_enum.insert('\n', TokenType::NewLine);
+        char_to_enum.insert('\n', (TokenType::NewLine, TokenKind::Rest));
 
         // Sring
-        char_to_enum.insert('"', TokenType::String);
+        char_to_enum.insert('"', (TokenType::String, TokenKind::Rest));
         // Number
-        char_to_enum.insert('0', TokenType::Number);
-        char_to_enum.insert('1', TokenType::Number);
-        char_to_enum.insert('2', TokenType::Number);
-        char_to_enum.insert('3', TokenType::Number);
-        char_to_enum.insert('4', TokenType::Number);
-        char_to_enum.insert('5', TokenType::Number);
-        char_to_enum.insert('6', TokenType::Number);
-        char_to_enum.insert('7', TokenType::Number);
-        char_to_enum.insert('8', TokenType::Number);
-        char_to_enum.insert('9', TokenType::Number);
+        char_to_enum.insert('0', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('1', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('2', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('3', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('4', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('5', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('6', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('7', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('8', (TokenType::Number, TokenKind::Rest));
+        char_to_enum.insert('9', (TokenType::Number, TokenKind::Rest));
 
         char_to_enum.get(a_char).map (|the_type| the_type.clone())
     }
 
     pub fn from_two_chars(first_char: &char, second_char: &char, fallback_token_type: TokenType) -> (TokenType, String, usize) {
         let mut str_to_enum = HashMap::<String, TokenType>::new();
-        str_to_enum.insert("!=".to_string(), TokenType::OneOrTwoChar(OneOrTwoCharTokens::BangEqual));
-        str_to_enum.insert("==".to_string(), TokenType::OneOrTwoChar(OneOrTwoCharTokens::EqualEqual));
-        str_to_enum.insert("<=".to_string(), TokenType::OneOrTwoChar(OneOrTwoCharTokens::LessEqual));
-        str_to_enum.insert(">=".to_string(), TokenType::OneOrTwoChar(OneOrTwoCharTokens::GreaterEqual));
+        str_to_enum.insert("!=".to_string(), TokenType::BangEqual);
+        str_to_enum.insert("==".to_string(), TokenType::EqualEqual);
+        str_to_enum.insert("<=".to_string(), TokenType::LessEqual);
+        str_to_enum.insert(">=".to_string(), TokenType::GreaterEqual);
 
         let mut as_str = String::new();
         as_str.push(*first_char);
