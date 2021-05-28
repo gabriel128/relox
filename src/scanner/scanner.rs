@@ -167,22 +167,22 @@ impl Scanner {
     }
 
     fn handle_number(&mut self) {
-        self.parse_number();
+        let mut got_a_dot = false;
 
-        if let Some('.') = self.current_char() {
-            if let Some(next_char) = self.next_char() {
-                if next_char.is_digit(10) {
-                    self.advance();
-                    self.parse_number();
-                }
+        while let Some(next_char) = self.next_char() {
+            if next_char.is_digit(10) {
+                self.advance();
+            }  else if *next_char == '.' && !got_a_dot {
+                got_a_dot = true;
+                self.advance();
+            } else {
+                break;
             }
         }
 
+        // if the last char is a dot it means that it's  a number like 11.
+        // so we retreat so the dot gets parsed as its own
         if let Some('.') = self.current_char() {
-            self.retreat();
-        }
-
-        if let Some(' ') = self.current_char() {
             self.retreat();
         }
 
@@ -197,22 +197,6 @@ impl Scanner {
         ));
     }
 
-    fn parse_number(&mut self) {
-        while let Some(current_char) = self.current_char() {
-            if current_char.is_digit(10) {
-                self.advance();
-            } else {
-                break;
-            }
-
-            if let Some(next_char) = self.next_char() {
-                if !next_char.is_digit(10) && *next_char != '.' {
-                    break;
-                }
-            }
-        }
-    }
-
     fn substring_source(&self, start: usize, end: usize) -> String {
         if end >= self.source_chars.len() {
             self.source_chars[start..].iter().collect::<String>()
@@ -220,10 +204,6 @@ impl Scanner {
             self.source_chars[start..end].iter().collect::<String>()
         }
     }
-
-    // fn substring_source(&self, start: usize, end: usize) -> String {
-    //     self.source_chars[start..end].iter().collect::<String>()
-    // }
 
     fn advance(&mut self) {
         self.current_index += 1;
