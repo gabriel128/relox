@@ -8,7 +8,7 @@ pub enum EvalResult {
     Number(f64),
     String(String),
     Bool(bool),
-    Null
+    Nil
 }
 
 pub trait Eval {
@@ -22,10 +22,10 @@ impl Eval for Expr<'_> {
             Expr::Binary(left, token, right) => handle_binary(token, left.eval()?, right.eval()?),
             Expr::Grouping(val) => val.eval(),
             Expr::Unary(token, right) => handle_unary(*token, right.eval()?),
-            Expr::Literal(None) => Ok(EvalResult::Null),
-            Expr::Literal(Some(ExprLiteral::Bool(a_bool))) => Ok(EvalResult::Bool(*a_bool)),
-            Expr::Literal(Some(ExprLiteral::Number(num))) => Ok(EvalResult::Number(*num)),
-            Expr::Literal(Some(ExprLiteral::String(a_string))) => Ok(EvalResult::String(a_string.to_string())),
+            Expr::Literal(ExprLiteral::Nil) => Ok(EvalResult::Nil),
+            Expr::Literal(ExprLiteral::Bool(a_bool)) => Ok(EvalResult::Bool(*a_bool)),
+            Expr::Literal(ExprLiteral::Number(num)) => Ok(EvalResult::Number(*num)),
+            Expr::Literal(ExprLiteral::String(a_string)) => Ok(EvalResult::String(a_string.to_string())),
          }
     }
 

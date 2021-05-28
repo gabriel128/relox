@@ -106,27 +106,28 @@ impl<'a> Parser<'a> {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
                     self.cursor += 1;
-                    let literal = Some(ExprLiteral::Bool(true));
+                    let literal = ExprLiteral::Bool(true);
                     Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::False, _) => {
                     self.cursor += 1;
-                    let literal = Some(ExprLiteral::Bool(false));
+                    let literal = ExprLiteral::Bool(false);
                     Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::Nil, _) => {
                     self.cursor += 1;
-                    Ok(Box::new(Expr::Literal(None)))
+                    let literal = ExprLiteral::Nil;
+                    Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::Number, Some(TokenLiteral::Double(num_literal))) => {
                     self.cursor += 1;
-                    let literal = Some(ExprLiteral::Number(*num_literal));
+                    let literal = ExprLiteral::Number(*num_literal);
                     Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::String, Some(TokenLiteral::String(string_literal))) => {
                     self.cursor += 1;
                     let with_quotes = "\"".to_owned() + string_literal + "\"";
-                    let literal = Some(ExprLiteral::String(with_quotes.to_string()));
+                    let literal = ExprLiteral::String(with_quotes.to_string());
                     Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::LeftParen, _) => {
