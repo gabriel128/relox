@@ -27,7 +27,7 @@ impl fmt::Display for Expr<'_> {
             Expr::Literal(ExprLiteral::Nil) => write!(f, "null"),
             Expr::Literal(ExprLiteral::Bool(a_bool)) => write!(f, "{}", a_bool),
             Expr::Literal(ExprLiteral::Number(num)) => write!(f, "{}", num),
-            Expr::Literal(ExprLiteral::String(a_string)) => write!(f, "{}", a_string),
+            Expr::Literal(ExprLiteral::String(a_string)) => write!(f, "\"{}\"", a_string),
          }
     }
 }

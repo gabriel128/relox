@@ -1,5 +1,6 @@
 #![warn(missing_debug_implementations)]
 
+use crate::eval::interpreted_eval::Eval;
 use crate::parser::parser::Parser;
 use crate::scanner::scanner::Scanner;
 use std::env;
@@ -59,6 +60,9 @@ fn run_prompt() -> io::Result<()> {
 fn run(input: &str) {
     let mut scanner = Scanner::new(input.to_string());
     let mut parser = Parser::new(scanner.scan_tokens());
-    let res = parser.parse();
-    println!("{}", res.unwrap());
+    let parse_res = parser.parse();
+    match parse_res.and_then( |res| res.eval()) {
+       Ok(eval_result) => println!("{}", eval_result),
+       Err(error) => println!("{}", error)
+    }
 }

@@ -126,8 +126,7 @@ impl<'a> Parser<'a> {
                 }
                 (TokenType::String, Some(TokenLiteral::String(string_literal))) => {
                     self.cursor += 1;
-                    let with_quotes = "\"".to_owned() + string_literal + "\"";
-                    let literal = ExprLiteral::String(with_quotes.to_string());
+                    let literal = ExprLiteral::String(string_literal.to_string());
                     Ok(Box::new(Expr::Literal(literal)))
                 }
                 (TokenType::LeftParen, _) => {
