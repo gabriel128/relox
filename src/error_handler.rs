@@ -8,7 +8,7 @@ pub fn error(line: usize, message: &str) {
 }
 
 pub fn runtime_error(line: usize, message: &str) {
-    eprintln!("[line {}] Error: {}", line, message);
+    eprintln!("[line {}] RuntimError: {}", line, message);
     set_runtime_error(false);
 }
 

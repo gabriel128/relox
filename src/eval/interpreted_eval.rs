@@ -1,8 +1,8 @@
-use std::fmt;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum EvalResult {
@@ -14,26 +14,25 @@ pub enum EvalResult {
 
 pub struct EvalError {
     pub line: usize,
-    pub message: String
+    pub message: String,
 }
 
 impl EvalError {
     pub fn new(line: usize, message: String) -> Self {
-       Self { line, message }
+        Self { line, message }
     }
 }
 
 impl fmt::Display for EvalResult {
-     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-         match self {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
             EvalResult::Number(val) => write!(f, "{}", val),
             EvalResult::String(val) => write!(f, "{}", val),
             EvalResult::Bool(val) => write!(f, "{}", val),
             EvalResult::Nil => write!(f, "nil"),
-         }
-     }
+        }
+    }
 }
-
 
 pub trait Eval {
     fn eval(&self) -> Result<EvalResult, EvalError>;
@@ -62,7 +61,7 @@ fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult, Ev
         (token_type, result) => {
             let message = format!("{:?} {}", token_type, result);
             Err(EvalError::new(token.line, message))
-        },
+        }
     }
 }
 fn handle_binary(
@@ -71,41 +70,76 @@ fn handle_binary(
     evaled_right: EvalResult,
 ) -> Result<EvalResult, EvalError> {
     match (token.token_type, evaled_left, evaled_right) {
-        (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x + y)),
-        (TokenType::Plus, EvalResult::String(x), EvalResult::String(ref y)) => Ok(EvalResult::String(x + y)),
+        (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Number(x + y))
+        }
+        (TokenType::Plus, EvalResult::String(x), EvalResult::String(ref y)) => {
+            Ok(EvalResult::String(x + y))
+        }
         (TokenType::Plus, _, _) => {
-            let message = "RuntimeError: sum parameters must be both numbers or both strings".to_string();
-            Err(EvalError::new(token.line, message))
-        },
-        (TokenType::Minus, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x - y)),
-        (TokenType::Minus, _, _) => {
-            let message = "RuntimeError: substraction parameters must be both numbers or both strings".to_string();
-            Err(EvalError::new(token.line, message))
-        },
-        (TokenType::Star, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x * y)),
-        (TokenType::Star, _, _) => {
-            let message = "RuntimeError: Multiplication parameters must be both numbers or both strings".to_string();
-            Err(EvalError::new(token.line, message))
-        },
-        (TokenType::Slash, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x / y)),
-        (TokenType::Slash, _, _) => {
-            let message = "RuntimeError: division parameters must be both numbers or both strings".to_string();
+            let message =
+                "sum parameters must be both numbers or both strings".to_string();
             Err(EvalError::new(token.line, message))
         }
-        (TokenType::Greater, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x > y)),
-        (TokenType::GreaterEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x >= y)),
-        (TokenType::Less, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x < y)),
-        (TokenType::LessEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x <= y)),
-        (TokenType::BangEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x != y)),
-        (TokenType::EqualEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x == y)),
-        (TokenType::EqualEqual, EvalResult::String(x), EvalResult::String(y)) => Ok(EvalResult::Bool(x == y)),
+        (TokenType::Minus, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Number(x - y))
+        }
+        (TokenType::Minus, _, _) => {
+            let message =
+                "substraction parameters must be both numbers or both strings"
+                    .to_string();
+            Err(EvalError::new(token.line, message))
+        }
+        (TokenType::Star, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Number(x * y))
+        }
+        (TokenType::Star, _, _) => {
+            let message =
+                "Multiplication parameters must be both numbers or both strings"
+                    .to_string();
+            Err(EvalError::new(token.line, message))
+        }
+        (TokenType::Slash, EvalResult::Number(x), EvalResult::Number(y)) => {
+            if y == 0.0 {
+                let message = "division by zero is undefined bro".to_string();
+                Err(EvalError::new(token.line, message))
+            } else {
+                Ok(EvalResult::Number(x / y))
+            }
+        }
+        (TokenType::Slash, _, _) => {
+            let message = "division parameters must be both numbers or both strings"
+                .to_string();
+            Err(EvalError::new(token.line, message))
+        }
+        (TokenType::Greater, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x > y))
+        }
+        (TokenType::GreaterEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x >= y))
+        }
+        (TokenType::Less, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x < y))
+        }
+        (TokenType::LessEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x <= y))
+        }
+        (TokenType::BangEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x != y))
+        }
+        (TokenType::EqualEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
+            Ok(EvalResult::Bool(x == y))
+        }
+        (TokenType::EqualEqual, EvalResult::String(x), EvalResult::String(y)) => {
+            Ok(EvalResult::Bool(x == y))
+        }
         (TokenType::EqualEqual, EvalResult::Nil, EvalResult::Nil) => Ok(EvalResult::Bool(true)),
         (TokenType::EqualEqual, EvalResult::Nil, _) => Ok(EvalResult::Bool(false)),
         (TokenType::EqualEqual, _, EvalResult::Nil) => Ok(EvalResult::Bool(false)),
         (TokenType::EqualEqual, _, _) => {
-            let message = "RuntimeError: you can't compare pears with apples".to_string();
+            let message = "you can't compare pears with apples".to_string();
             Err(EvalError::new(token.line, message))
-        },
+        }
         (TokenType::Nil, _, _) => Ok(EvalResult::Nil),
         (token_type, result, result2) => {
             let message = format!("{:?} can't handle {} {}", token_type, result, result2);
@@ -153,10 +187,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(
-            "Minus true",
-            res.eval().expect_err("")
-        );
+        assert_eq!("Minus true", res.eval().expect_err(""));
     }
 
     #[test]
@@ -177,10 +208,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(
-            "Bang 2",
-            res.eval().expect_err("")
-        );
+        assert_eq!("Bang 2", res.eval().expect_err(""));
     }
 
     #[test]
@@ -189,6 +217,6 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(EvalResult::Number(1.0), res.eval().unwrap());
+        assert_eq!(EvalResult::Number(1.0), res.eval());
     }
 }
