@@ -12,6 +12,17 @@ pub enum EvalResult {
     Nil,
 }
 
+pub struct EvalError {
+    pub line: usize,
+    pub message: String
+}
+
+impl EvalError {
+    pub fn new(line: usize, message: String) -> Self {
+       Self { line, message }
+    }
+}
+
 impl fmt::Display for EvalResult {
      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
          match self {
@@ -25,11 +36,11 @@ impl fmt::Display for EvalResult {
 
 
 pub trait Eval {
-    fn eval(&self) -> Result<EvalResult, String>;
+    fn eval(&self) -> Result<EvalResult, EvalError>;
 }
 
 impl Eval for Expr<'_> {
-    fn eval(&self) -> Result<EvalResult, String> {
+    fn eval(&self) -> Result<EvalResult, EvalError> {
         match self {
             Expr::Binary(left, token, right) => handle_binary(token, left.eval()?, right.eval()?),
             Expr::Grouping(val) => val.eval(),
@@ -44,30 +55,62 @@ impl Eval for Expr<'_> {
     }
 }
 
-fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult, String> {
+fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult, EvalError> {
     match (token.token_type, evaled_expr) {
         (TokenType::Minus, EvalResult::Number(the_num)) => Ok(EvalResult::Number(-the_num)),
         (TokenType::Bang, EvalResult::Bool(a_bool)) => Ok(EvalResult::Bool(!a_bool)),
-        (token_type, result) => Err(format!("{:?} {}", token_type, result)),
+        (token_type, result) => {
+            let message = format!("{:?} {}", token_type, result);
+            Err(EvalError::new(token.line, message))
+        },
     }
 }
 fn handle_binary(
     token: &Token,
     evaled_left: EvalResult,
     evaled_right: EvalResult,
-) -> Result<EvalResult, String> {
+) -> Result<EvalResult, EvalError> {
     match (token.token_type, evaled_left, evaled_right) {
-        (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => {
-            Ok(EvalResult::Number(x + y))
-        }
-        (TokenType::Plus, EvalResult::String(x), EvalResult::String(ref y)) => {
-            // TODO
-            Ok(EvalResult::String(x + y))
-        }
+        (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x + y)),
+        (TokenType::Plus, EvalResult::String(x), EvalResult::String(ref y)) => Ok(EvalResult::String(x + y)),
         (TokenType::Plus, _, _) => {
-            Err("RuntimeError: sum parameters must be both numbers or both strings".to_string())
+            let message = "RuntimeError: sum parameters must be both numbers or both strings".to_string();
+            Err(EvalError::new(token.line, message))
+        },
+        (TokenType::Minus, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x - y)),
+        (TokenType::Minus, _, _) => {
+            let message = "RuntimeError: substraction parameters must be both numbers or both strings".to_string();
+            Err(EvalError::new(token.line, message))
+        },
+        (TokenType::Star, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x * y)),
+        (TokenType::Star, _, _) => {
+            let message = "RuntimeError: Multiplication parameters must be both numbers or both strings".to_string();
+            Err(EvalError::new(token.line, message))
+        },
+        (TokenType::Slash, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Number(x / y)),
+        (TokenType::Slash, _, _) => {
+            let message = "RuntimeError: division parameters must be both numbers or both strings".to_string();
+            Err(EvalError::new(token.line, message))
         }
-        (token_type, result, result2) => Err(format!("{:?} can't handle {} {}", token_type, result, result2)),
+        (TokenType::Greater, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x > y)),
+        (TokenType::GreaterEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x >= y)),
+        (TokenType::Less, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x < y)),
+        (TokenType::LessEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x <= y)),
+        (TokenType::BangEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x != y)),
+        (TokenType::EqualEqual, EvalResult::Number(x), EvalResult::Number(y)) => Ok(EvalResult::Bool(x == y)),
+        (TokenType::EqualEqual, EvalResult::String(x), EvalResult::String(y)) => Ok(EvalResult::Bool(x == y)),
+        (TokenType::EqualEqual, EvalResult::Nil, EvalResult::Nil) => Ok(EvalResult::Bool(true)),
+        (TokenType::EqualEqual, EvalResult::Nil, _) => Ok(EvalResult::Bool(false)),
+        (TokenType::EqualEqual, _, EvalResult::Nil) => Ok(EvalResult::Bool(false)),
+        (TokenType::EqualEqual, _, _) => {
+            let message = "RuntimeError: you can't compare pears with apples".to_string();
+            Err(EvalError::new(token.line, message))
+        },
+        (TokenType::Nil, _, _) => Ok(EvalResult::Nil),
+        (token_type, result, result2) => {
+            let message = format!("{:?} can't handle {} {}", token_type, result, result2);
+            Err(EvalError::new(token.line, message))
+        }
     }
 }
 
@@ -111,7 +154,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(
-            "Fatal error, unary not matched (Minus, Bool(true))",
+            "Minus true",
             res.eval().expect_err("")
         );
     }
@@ -135,7 +178,7 @@ mod tests {
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(
-            "Fatal error, unary not matched (Bang, Number(2.0))",
+            "Bang 2",
             res.eval().expect_err("")
         );
     }
