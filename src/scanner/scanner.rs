@@ -55,7 +55,7 @@ impl Scanner {
                     if source_char.is_ascii_alphabetic() {
                         self.handle_keyword_or_identifier();
                     } else {
-                        error_handler::error(self.line, "Unexpected character");
+                        error_handler::error(self.line, &format!("Scanner Error: Unexpected character {}", source_char));
                     }
                 }
             }

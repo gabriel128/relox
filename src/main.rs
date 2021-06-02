@@ -1,5 +1,7 @@
 #![warn(missing_debug_implementations)]
 
+use crate::eval::interpreted_eval::EvalError;
+use crate::eval::interpreted_eval::Eval;
 use crate::parser::parser::Parser;
 use crate::scanner::scanner::Scanner;
 use std::env;
@@ -11,6 +13,7 @@ mod token;
 mod scanner;
 mod grammar;
 mod parser;
+mod eval;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -34,6 +37,8 @@ fn run_file(path: &str) {
 
     if error_handler::had_error() {
         process::exit(65);
+    } else if error_handler::had_runtime_error() {
+        process::exit(70);
     }
 }
 
@@ -52,12 +57,19 @@ fn run_prompt() -> io::Result<()> {
             run(&buffer);
         }
         error_handler::set_error(false);
+        error_handler::set_runtime_error(false);
     }
 }
 
 fn run(input: &str) {
     let mut scanner = Scanner::new(input.to_string());
     let mut parser = Parser::new(scanner.scan_tokens());
-    let res = parser.parse();
-    println!("{}", res.unwrap());
+    let parse_res = parser.parse().or_else(|error| {
+        Err(EvalError::new(0, error))
+    });
+    
+    match parse_res.and_then( |res| res.eval()) {
+       Ok(eval_result) => println!("{}", eval_result),
+       Err(EvalError{line, message}) => error_handler::runtime_error(line, &message)
+    }
 }
