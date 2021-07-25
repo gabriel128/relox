@@ -12,6 +12,7 @@ pub enum EvalResult {
     Nil,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct EvalError {
     pub line: usize,
     pub message: String,
@@ -187,7 +188,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!("Minus true", res.eval().expect_err(""));
+        assert_eq!(EvalError::new(1, "Minus true".to_string()), res.eval().expect_err(""));
     }
 
     #[test]
@@ -208,7 +209,7 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!("Bang 2", res.eval().expect_err(""));
+        assert_eq!(EvalError::new(1, "Bang 2".to_string()), res.eval().expect_err(""));
     }
 
     #[test]
@@ -217,6 +218,6 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(EvalResult::Number(1.0), res.eval());
+        assert_eq!(EvalResult::Number(1.0), res.eval().unwrap());
     }
 }
