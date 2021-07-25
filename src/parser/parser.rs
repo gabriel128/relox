@@ -1,4 +1,5 @@
 use crate::error_handler;
+use crate::eval::interpreted_eval::EvalError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Literal as TokenLiteral;
@@ -8,6 +9,23 @@ use crate::token::token_type::TokenType;
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
     cursor: usize,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParserError {
+    pub message: String
+}
+
+impl From<ParserError> for EvalError {
+    fn from(error: ParserError) -> Self {
+        EvalError::new(0, error.message)
+    }
+}
+
+impl ParserError {
+    pub fn new(message: String) -> Self {
+        Self { message }
+    }
 }
 
 // expression     → equality ;
@@ -27,14 +45,14 @@ impl<'a> Parser<'a> {
         Self { tokens, cursor: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr<'a>, String> {
+    pub fn parse(&mut self) -> Result<Expr<'a>, ParserError> {
         let expr = self.expression()?;
         Ok(*expr)
     }
 
-    fn one_or_many<F>(&mut self, token_types: Vec<TokenType>, mut f: F,) -> Result<Box<Expr<'a>>, String>
+    fn one_or_many<F>(&mut self, token_types: Vec<TokenType>, mut f: F) -> Result<Box<Expr<'a>>, ParserError>
     where
-        F: FnMut(&mut Self) -> Result<Box<Expr<'a>>, String>,
+        F: FnMut(&mut Self) -> Result<Box<Expr<'a>>, ParserError>,
     {
         let left_expr = f(self)?;
         let mut left_expr = left_expr;
@@ -52,18 +70,18 @@ impl<'a> Parser<'a> {
     }
 
     // expression → equality ;
-    fn expression(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn expression(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         self.equality()
     }
 
     // equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn equality(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         let token_types = vec![TokenType::Bang, TokenType::EqualEqual];
         self.one_or_many(token_types, |the_self| the_self.comparison())
     }
 
     // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn comparison(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         let token_types = vec![
             TokenType::Greater,
             TokenType::GreaterEqual,
@@ -74,19 +92,19 @@ impl<'a> Parser<'a> {
     }
 
     // term → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn term(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         let token_types = vec![TokenType::Minus, TokenType::Plus];
         self.one_or_many(token_types, |the_self| the_self.factor())
     }
 
     // factor         → unary ( ( "/" | "*" ) unary )* ;
-    fn factor(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn factor(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         let token_types = vec![TokenType::Star, TokenType::Slash];
         self.one_or_many(token_types, |the_self| the_self.unary())
     }
 
     // unary → ( "!" | "-" ) unary | primary ;
-    fn unary(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn unary(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match token.token_type {
                 TokenType::Bang | TokenType::Minus => {
@@ -101,7 +119,7 @@ impl<'a> Parser<'a> {
     }
 
     // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
-    fn primary(&mut self) -> Result<Box<Expr<'a>>, String> {
+    fn primary(&mut self) -> Result<Box<Expr<'a>>, ParserError> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
@@ -138,25 +156,25 @@ impl<'a> Parser<'a> {
                     )?;
                     Ok(Box::new(Expr::Grouping(expr)))
                 }
-                _token => Err(format!("Parser Error: got this {:?}", token)),
+                _token => Err(ParserError::new(format!("Parser Error: got this {:?}", token))),
             }
         } else {
             panic!("Out of bounds")
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<(), String> {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<(), ParserError> {
         if let Some(current_token) = self.tokens.get(self.cursor) {
             if current_token.token_type == token_type {
                 self.cursor += 1;
                 Ok(())
             } else if current_token.token_type == TokenType::Eof {
                 error_handler::report(current_token.line, " at the end", message);
-                Err(format!("Parser Error"))
+                Err(ParserError::new(format!("Parser Error")))
             } else {
                 let where_at = format!(" at '{}'", current_token.lexeme);
                 error_handler::report(current_token.line, &where_at, message);
-                Err(format!("Parser Error"))
+                Err(ParserError::new(format!("Parser Error")))
             }
         } else {
             panic!("Parser Error: Fatal Error");
@@ -223,6 +241,6 @@ mod tests {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().expect_err("should've been an error");
-        assert_eq!("Parser Error", res);
+        assert_eq!(ParserError::new("Parser Error".to_string()), res);
     }
 }

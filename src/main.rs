@@ -64,10 +64,8 @@ fn run_prompt() -> io::Result<()> {
 fn run(input: &str) {
     let mut scanner = Scanner::new(input.to_string());
     let mut parser = Parser::new(scanner.scan_tokens());
-    let parse_res = parser.parse().or_else(|error| {
-        Err(EvalError::new(0, error))
-    });
-    
+    let parse_res = parser.parse().or_else(|error| Err(error.into()));
+
     match parse_res.and_then( |res| res.eval()) {
        Ok(eval_result) => println!("{}", eval_result),
        Err(EvalError{line, message}) => error_handler::runtime_error(line, &message)
