@@ -7,20 +7,14 @@ pub enum OpCode {
     Return
 }
 
-// impl OpCode {
-//     pub fn add_to_chunk(self, code_chunk: &mut Vec<OpCode>) {
-//         match self {
-//             Self::Constant
-//         }
-//     }
-// }
+pub type Value = f64;
 /// Chunk
 ///
 /// Represents a chunk of Opcodes. It can be thought as an array of bytes
 #[derive(Debug)]
 pub struct Chunk {
     code: Vec<OpCode>,
-    constant_pool: Vec<f64>,
+    constant_pool: Vec<Value>,
     lines: Vec<u16>
 }
 
@@ -37,7 +31,7 @@ impl Chunk {
         self.code.get(index)
     }
 
-    pub fn read_constant(&self, index: u8) -> Option<&f64> {
+    pub fn read_constant(&self, index: u8) -> Option<&Value> {
         self.constant_pool.get(index as usize)
     }
 
@@ -46,7 +40,7 @@ impl Chunk {
         self.lines.push(line);
     }
 
-    pub fn add_constant(&mut self, constant: f64, line: u16) -> Result<(), String>{
+    pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<(), String>{
         if self.constant_pool.len() >= 255 {
             return Err("Constant Pool max reached".to_string())
         }
@@ -77,21 +71,6 @@ impl Chunk {
         *byte_offset += std::mem::size_of_val(opcode);
     }
 }
-
-// impl Deref for Chunk {
-//     type Target = Vec<OpCode>;
-
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
-
-// impl DerefMut for Chunk {
-//     fn deref_mut(&mut self) -> &mut Vec<OpCode> {
-//         &mut self.0
-//     }
-// }
-
 
 #[cfg(test)]
 mod tests {
