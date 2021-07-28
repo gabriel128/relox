@@ -6,7 +6,6 @@ use crate::scanner::scanner::Scanner;
 use std::env;
 use std::io;
 use std::process;
-mod error_handler;
 mod token;
 mod scanner;
 mod grammar;
@@ -38,9 +37,9 @@ fn run_file(_path: &str) {
     // let contents = fs::read_to_string(path).expect("Couldn't read file");
     // run(&contents);
 
-    // if error_handler::had_error() {
+    // if compile error {
     //     process::exit(65);
-    // } else if error_handler::had_runtime_error() {
+    // } else if runtime error {
     //     process::exit(70);
     // }
 }
