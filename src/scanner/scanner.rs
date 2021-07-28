@@ -60,7 +60,7 @@ impl Scanner {
                     self.errors.push(ReloxError::new_compile_error(
                         self.line,
                         format!("Unexpected token {:?}", token_type),
-                        "".to_string(),
+                        None,
                         LexError,
                     ));
                 }
@@ -70,8 +70,8 @@ impl Scanner {
                     } else {
                         self.errors.push(ReloxError::new_compile_error(
                             self.line,
-                            "Unexpected Token".to_string(),
-                            "".to_string(),
+                            format!("Unexpected Token {}", source_char),
+                            None,
                             LexError,
                         ));
                     }
@@ -173,7 +173,7 @@ impl Scanner {
             self.errors.push(ReloxError::new_compile_error(
                 self.line,
                 "String not terminated".to_string(),
-                "".to_string(),
+                None,
                 LexError,
             ));
             return;

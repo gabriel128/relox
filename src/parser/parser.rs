@@ -145,16 +145,19 @@ impl<'a> Parser<'a> {
                 }
                 _token => {
                     let error = ReloxError::new_compile_error(
-                        0,
-                        format!("Parser Error: got this {:?}", token),
-                        "".to_string(),
-                        ErrorKind::ParserError,
+                        token.line,
+                        format!("Unparsable Expression {:?}", token.lexeme),
+                        None,
+                        ErrorKind::ParserError
                     );
                     Err(error)
                 }
             }
         } else {
-            panic!("Out of bounds")
+            let error = ReloxError::new_fatal_error(
+              "Parser Error: out of bounds".to_string()
+            );
+            Err(error)
         }
     }
 
@@ -167,7 +170,7 @@ impl<'a> Parser<'a> {
                 let error = ReloxError::new_compile_error(
                     current_token.line,
                     message.to_string(),
-                    " at the end".to_string(),
+                    Some(" at the end".to_string()),
                     ErrorKind::ParserError,
                 );
                 Err(error)
@@ -176,17 +179,14 @@ impl<'a> Parser<'a> {
                 let error = ReloxError::new_compile_error(
                     current_token.line,
                     "".to_string(),
-                    where_at,
+                    Some(where_at),
                     ErrorKind::ParserError,
                 );
                 Err(error)
             }
         } else {
-            let error = ReloxError::new_compile_error(
-                0,
-                "Fatal Error (almost SEGFAULT)".to_string(),
-                "".to_string(),
-                ErrorKind::ParserError,
+            let error = ReloxError::new_fatal_error(
+                "Almost SEGFAULT".to_string()
             );
             Err(error)
         }
@@ -196,7 +196,7 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Scanner;
+    use crate::{Scanner, errors::CompilationError};
 
     #[test]
     fn test_parsing_random0() {
@@ -251,7 +251,12 @@ mod tests {
         let mut scanner = Scanner::new("true == (false == true".to_string());
         let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
-        let res: ReloxError = parser.parse().expect_err("should've been an error");
-        assert_eq!(ErrorKind::ParserError, res.kind());
+
+        if let ReloxError::CompilationError(CompilationError { message, kind , ..}) = parser.parse().expect_err("should've been an error") {
+            assert_eq!(ErrorKind::ParserError, kind);
+            assert_eq!("There should be a ')' after expression, duh.", message);
+        } else {
+            panic!("Shouldn't have reached this point")
+        }
     }
 }

@@ -4,43 +4,69 @@ use std::fmt;
 pub enum ErrorKind {
     LexError,
     ParserError,
-    EvalError
+    EvalError,
+    Fatal,
 }
 
 #[derive(Debug)]
 pub struct CompilationError {
-    line: usize,
-    message: String,
-    where_it_was: String,
-    kind: ErrorKind,
+    pub line: usize,
+    pub message: String,
+    where_it_was: Option<String>,
+    pub kind: ErrorKind,
 }
 
 #[derive(Debug)]
 pub struct RuntimeError {
-    line: usize,
-    message: String,
-    kind: ErrorKind,
+    pub line: usize,
+    pub message: String,
+    pub kind: ErrorKind,
+}
+
+#[derive(Debug)]
+pub struct FatalError {
+    pub message: String,
 }
 
 #[derive(Debug)]
 pub enum ReloxError {
     CompilationError(CompilationError),
     RuntimeError(RuntimeError),
+    FatalError(FatalError),
 }
 
 impl ReloxError {
-    pub fn new_compile_error(line: usize, message: String, where_it_was: String, kind: ErrorKind) -> Self {
-        Self::CompilationError( CompilationError { line, message, where_it_was, kind })
+    pub fn new_compile_error(
+        line: usize,
+        message: String,
+        where_it_was: Option<String>,
+        kind: ErrorKind,
+    ) -> Self {
+        Self::CompilationError(CompilationError {
+            line,
+            message,
+            where_it_was,
+            kind,
+        })
+    }
+
+    pub fn new_fatal_error(message: String) -> Self{
+       Self::FatalError(FatalError { message })
     }
 
     pub fn new_runtime_error(line: usize, message: String, kind: ErrorKind) -> Self {
-        Self::RuntimeError( RuntimeError { line, message, kind })
+        Self::RuntimeError(RuntimeError {
+            line,
+            message,
+            kind,
+        })
     }
 
     pub fn kind(&self) -> ErrorKind {
         match self {
             ReloxError::CompilationError(error) => error.kind,
             ReloxError::RuntimeError(error) => error.kind,
+            ReloxError::FatalError(_) => ErrorKind::Fatal,
         }
     }
 }
@@ -51,8 +77,16 @@ impl fmt::Display for ReloxError {
             ReloxError::CompilationError(CompilationError {
                 line,
                 message,
-                where_it_was,
                 kind,
+                where_it_was: None,
+            }) => {
+                write!(f, "[line {}] Error {:?}: {}", line, kind, message)
+            }
+            ReloxError::CompilationError(CompilationError {
+                line,
+                message,
+                kind,
+                where_it_was: Some(where_it_was),
             }) => {
                 write!(
                     f,
@@ -64,9 +98,8 @@ impl fmt::Display for ReloxError {
                 line,
                 message,
                 kind,
-            }) => {
-                write!(f, "[line {}] RuntimeError {:?}: {}", line, kind, message)
-            }
+            }) => write!(f, "[line {}] RuntimeError {:?}: {}", line, kind, message),
+            ReloxError::FatalError(FatalError { message }) => write!(f, "FatalError: {}", message),
         }
     }
 }
