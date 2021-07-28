@@ -15,6 +15,7 @@ mod grammar;
 mod parser;
 mod eval;
 mod bytecode;
+mod errors;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -64,7 +65,8 @@ fn run_prompt() -> io::Result<()> {
 
 fn run(input: &str) {
     let mut scanner = Scanner::new(input.to_string());
-    let mut parser = Parser::new(scanner.scan_tokens());
+    let (tokens, _errors) = scanner.scan_tokens();
+    let mut parser = Parser::new(tokens);
     let parse_res = parser.parse().or_else(|error| Err(error.into()));
 
     match parse_res.and_then( |res| res.eval()) {

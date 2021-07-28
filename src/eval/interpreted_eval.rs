@@ -158,13 +158,13 @@ mod tests {
     #[test]
     fn test_binary_eval() {
         let mut scanner = Scanner::new("1 + 2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(3.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("\"a\" + \"b\"".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::String("ab".to_string()), res.eval().unwrap());
@@ -173,19 +173,19 @@ mod tests {
     #[test]
     fn test_unary_number_eval() {
         let mut scanner = Scanner::new("-1".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(-1.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("-30.0".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(-30.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("-true".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalError::new(1, "Minus true".to_string()), res.eval().expect_err(""));
@@ -194,19 +194,19 @@ mod tests {
     #[test]
     fn test_unary_bool_eval() {
         let mut scanner = Scanner::new("!true".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Bool(false), res.eval().unwrap());
 
         let mut scanner = Scanner::new("!false".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Bool(true), res.eval().unwrap());
 
         let mut scanner = Scanner::new("!2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalError::new(1, "Bang 2".to_string()), res.eval().expect_err(""));
@@ -215,7 +215,7 @@ mod tests {
     #[test]
     fn test_grouping_eval() {
         let mut scanner = Scanner::new("(1)".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(1.0), res.eval().unwrap());

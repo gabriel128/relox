@@ -1,8 +1,10 @@
 use crate::error_handler;
+use crate::errors::ReloxError;
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenKind;
 
+#[derive(Debug)]
 pub struct Scanner {
     line: usize,
     start: usize,
@@ -10,6 +12,7 @@ pub struct Scanner {
     source_chars: Vec<char>,
     source_length: usize,
     tokens: Vec<Token>,
+    errors: Vec<ReloxError>
 }
 
 impl Scanner {
@@ -27,12 +30,13 @@ impl Scanner {
             line,
             current_index,
             start,
+            errors: Vec::new()
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<ReloxError>) {
         self.run_scan();
-        &self.tokens
+        (&self.tokens, &self.errors)
     }
 
     pub fn run_scan(&mut self) {

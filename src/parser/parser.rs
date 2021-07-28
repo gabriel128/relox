@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn test_parsing_random0() {
         let mut scanner = Scanner::new("5 == 1 + 2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse();
         assert_eq!("(5 == (1 + 2))", format!("{}", res.unwrap(),));
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn test_parsing_random1() {
         let mut scanner = Scanner::new("5 <=    1 - 2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse();
         assert_eq!("(5 <= (1 - 2))", format!("{}", res.unwrap(),));
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_parsing_random2() {
         let mut scanner = Scanner::new("false - 2 + 3 + 4 == 2 == true <= 10".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse();
         assert_eq!(
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn test_string_equality() {
         let mut scanner = Scanner::new("\"epppa\" == \"epppa\"".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse();
         assert_eq!("(\"epppa\" == \"epppa\")", format!("{}", res.unwrap(),));
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn test_grouping_equality() {
         let mut scanner = Scanner::new("1 == (1 + 2)".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse();
         assert_eq!("(1 == (grouping (1 + 2)))", format!("{}", res.unwrap(),));
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn test_grouping2() {
         let mut scanner = Scanner::new("true == (false == true".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().expect_err("should've been an error");
         assert_eq!(ParserError::new("Parser Error".to_string()), res);

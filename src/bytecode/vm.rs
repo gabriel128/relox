@@ -42,13 +42,14 @@ impl<T: Default + Copy> VmStack<T> {
 struct Vm {
     chunk: Chunk,
     ip: usize,
-    stack: VmStack<Value>,
+    instr_stack: VmStack<Value>,
     debug_mode: bool,
 }
 
 #[derive(Debug)]
 enum RuntimeError {
     StackOverflow,
+    GenericError,
 }
 
 #[derive(Debug)]
@@ -63,29 +64,38 @@ impl Vm {
             chunk,
             ip: 1,
             debug_mode: false,
-            stack: VmStack::new(),
+            instr_stack: VmStack::new(),
         }
     }
 
-    pub fn interpret(&mut self) -> Result<(), VmError> {
+    pub fn run(&mut self) -> Result<(), VmError> {
         loop {
             if let Some(instruction) = self.chunk.instruction_at(self.ip) {
                 self.ip += 1;
 
                 if self.debug_mode {
+                    println!("== Current stack ==");
+                    dbg!(&self.instr_stack);
                     self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
                 }
 
                 let res = match instruction {
                     OpCode::Constant { constant_offset } => {
                         if let Some(the_constant) = self.chunk.read_constant(*constant_offset) {
-                            println!("The constant is {:?}", the_constant);
+                            self.instr_stack.push(*the_constant)?;
                             Ok(())
                         } else {
                             Err(VmError::CompileError)
                         }
                     }
-                    OpCode::Return => Ok(()),
+                    OpCode::Return => {
+                        if let Some(value) = self.instr_stack.pop() {
+                            println!("Return Value is: {:?}", value);
+                            Ok(())
+                        } else {
+                            Err(VmError::CompileError)
+                        }
+                    },
                 };
 
                 return res;
