@@ -15,9 +15,10 @@ mod eval;
 mod bytecode;
 mod errors;
 
-// type Result<T> = Result<T, ReloxError>;
 
-fn main() -> io::Result<()> {
+pub type Result<T, E = errors::ReloxError> = std::result::Result<T, E>;
+
+fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 2 {
@@ -44,7 +45,7 @@ fn run_file(_path: &str) {
     // }
 }
 
-fn run_repl() -> io::Result<()> {
+fn run_repl() -> Result<()> {
     loop {
         print!("> ");
         io::Write::flush(&mut io::stdout()).expect("flush failed!");

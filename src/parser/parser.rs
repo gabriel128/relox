@@ -5,6 +5,7 @@ use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Literal as TokenLiteral;
 use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use crate::Result;
 
 // expression     → equality ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -28,7 +29,7 @@ impl<'a> Parser<'a> {
         Self { tokens, cursor: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr<'a>, ReloxError> {
+    pub fn parse(&mut self) -> Result<Expr<'a>> {
         let expr = self.expression()?;
         Ok(*expr)
     }
@@ -37,9 +38,9 @@ impl<'a> Parser<'a> {
         &mut self,
         token_types: Vec<TokenType>,
         mut f: F,
-    ) -> Result<Box<Expr<'a>>, ReloxError>
+    ) -> Result<Box<Expr<'a>>>
     where
-        F: FnMut(&mut Self) -> Result<Box<Expr<'a>>, ReloxError>,
+        F: FnMut(&mut Self) -> Result<Box<Expr<'a>>>
     {
         let left_expr = f(self)?;
         let mut left_expr = left_expr;
@@ -57,18 +58,18 @@ impl<'a> Parser<'a> {
     }
 
     // expression → equality ;
-    fn expression(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn expression(&mut self) -> Result<Box<Expr<'a>>> {
         self.equality()
     }
 
     // equality → comparison ( ( "!=" | "==" ) comparison )* ;
-    fn equality(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn equality(&mut self) -> Result<Box<Expr<'a>>> {
         let token_types = vec![TokenType::Bang, TokenType::EqualEqual];
         self.one_or_many(token_types, |the_self| the_self.comparison())
     }
 
     // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-    fn comparison(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn comparison(&mut self) -> Result<Box<Expr<'a>>> {
         let token_types = vec![
             TokenType::Greater,
             TokenType::GreaterEqual,
@@ -79,19 +80,19 @@ impl<'a> Parser<'a> {
     }
 
     // term → factor ( ( "-" | "+" ) factor )* ;
-    fn term(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn term(&mut self) -> Result<Box<Expr<'a>>> {
         let token_types = vec![TokenType::Minus, TokenType::Plus];
         self.one_or_many(token_types, |the_self| the_self.factor())
     }
 
     // factor         → unary ( ( "/" | "*" ) unary )* ;
-    fn factor(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn factor(&mut self) -> Result<Box<Expr<'a>>> {
         let token_types = vec![TokenType::Star, TokenType::Slash];
         self.one_or_many(token_types, |the_self| the_self.unary())
     }
 
     // unary → ( "!" | "-" ) unary | primary ;
-    fn unary(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn unary(&mut self) -> Result<Box<Expr<'a>>> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match token.token_type {
                 TokenType::Bang | TokenType::Minus => {
@@ -106,7 +107,7 @@ impl<'a> Parser<'a> {
     }
 
     // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
-    fn primary(&mut self) -> Result<Box<Expr<'a>>, ReloxError> {
+    fn primary(&mut self) -> Result<Box<Expr<'a>>> {
         if let Some(ref token) = self.tokens.get(self.cursor) {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
@@ -161,7 +162,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<(), ReloxError> {
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<()> {
         if let Some(current_token) = self.tokens.get(self.cursor) {
             if current_token.token_type == token_type {
                 self.cursor += 1;

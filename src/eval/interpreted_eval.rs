@@ -4,6 +4,7 @@ use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use crate::Result;
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
@@ -26,11 +27,11 @@ impl fmt::Display for EvalResult {
 }
 
 pub trait Eval {
-    fn eval(&self) -> Result<EvalResult, ReloxError>;
+    fn eval(&self) -> Result<EvalResult>;
 }
 
 impl Eval for Expr<'_> {
-    fn eval(&self) -> Result<EvalResult, ReloxError> {
+    fn eval(&self) -> Result<EvalResult> {
         match self {
             Expr::Binary(left, token, right) => handle_binary(token, left.eval()?, right.eval()?),
             Expr::Grouping(val) => val.eval(),
@@ -45,7 +46,7 @@ impl Eval for Expr<'_> {
     }
 }
 
-fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult, ReloxError> {
+fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult> {
     match (token.token_type, evaled_expr) {
         (TokenType::Minus, EvalResult::Number(the_num)) => Ok(EvalResult::Number(-the_num)),
         (TokenType::Bang, EvalResult::Bool(a_bool)) => Ok(EvalResult::Bool(!a_bool)),
@@ -56,7 +57,7 @@ fn handle_binary(
     token: &Token,
     evaled_left: EvalResult,
     evaled_right: EvalResult,
-) -> Result<EvalResult, ReloxError> {
+) -> Result<EvalResult> {
     match (token.token_type, evaled_left, evaled_right) {
         (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => {
             Ok(EvalResult::Number(x + y))
@@ -137,7 +138,7 @@ fn handle_binary(
 
 }
 
-fn build_eval_error(line: usize, message: String ) -> Result<EvalResult, ReloxError>{
+fn build_eval_error(line: usize, message: String ) -> Result<EvalResult>{
     let error = ReloxError::new_runtime_error(
         line,
         message,

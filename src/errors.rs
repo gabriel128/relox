@@ -6,6 +6,7 @@ pub enum ErrorKind {
     ParserError,
     EvalError,
     Fatal,
+    IO
 }
 
 #[derive(Debug)]
@@ -33,6 +34,13 @@ pub enum ReloxError {
     CompilationError(CompilationError),
     RuntimeError(RuntimeError),
     FatalError(FatalError),
+    IOError(std::io::Error)
+}
+
+impl From<std::io::Error> for ReloxError {
+    fn from(v: std::io::Error) -> Self {
+        Self::IOError(v)
+    }
 }
 
 impl ReloxError {
@@ -67,6 +75,7 @@ impl ReloxError {
             ReloxError::CompilationError(error) => error.kind,
             ReloxError::RuntimeError(error) => error.kind,
             ReloxError::FatalError(_) => ErrorKind::Fatal,
+            ReloxError::IOError(_) => ErrorKind::IO,
         }
     }
 }
@@ -100,6 +109,7 @@ impl fmt::Display for ReloxError {
                 kind,
             }) => write!(f, "[line {}] RuntimeError {:?}: {}", line, kind, message),
             ReloxError::FatalError(FatalError { message }) => write!(f, "FatalError: {}", message),
+            ReloxError::IOError(error) => write!(f, "IOError: {}", error),
         }
     }
 }
