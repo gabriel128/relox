@@ -98,24 +98,24 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    use std::mem::size_of_val;
+    // use std::mem::size_of_val;
 
-    use super::*;
+    // use super::*;
 
     #[test]
     fn test_chunk() {
-        let mut vec = Vec::<OpCode>::new();
+        // let mut vec = Vec::<OpCode>::new();
 
-        println!("Empty Vec {:?}", size_of_val(&vec));
-        println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
-        vec.push(OpCode::Return);
-        vec.push(OpCode::Constant { constant_offset: 2 });
-        println!("Size of Vec with return {:?}", size_of_val(&*vec));
+        // println!("Empty Vec {:?}", size_of_val(&vec));
+        // println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
+        // vec.push(OpCode::Return);
+        // vec.push(OpCode::Constant { constant_offset: 2 });
+        // println!("Size of Vec with return {:?}", size_of_val(&*vec));
 
-        let mut chunk = Chunk::new();
-        chunk.add_constant(3.0, 22).unwrap();
-        chunk.add_constant(4.0, 22).unwrap();
-        chunk.write_bytecode(OpCode::Return, 23);
-        chunk.dissasemble();
+        // let mut chunk = Chunk::new();
+        // chunk.add_constant(3.0, 22).unwrap();
+        // chunk.add_constant(4.0, 22).unwrap();
+        // chunk.write_bytecode(OpCode::Return, 23);
+        // chunk.dissasemble();
     }
 }

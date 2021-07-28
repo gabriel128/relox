@@ -12,7 +12,6 @@ It's work in progress but you should be able to get this locally and run `cargo 
 - [x] Interpreter Scanner
 - [x] Interpreter Parser
 - [x] Basic Interpreter Eval
-- [ ] Better Error Handling (not happy with this yet)
 - [ ] Statements
 - [ ] Control Flow
 - [ ] Functions

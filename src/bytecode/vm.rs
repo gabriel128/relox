@@ -1,20 +1,12 @@
-use crate::bytecode::chunk::OpCode;
+use crate::{
+    bytecode::chunk::OpCode,
+    errors::{ErrorKind::StackOverFlow, ReloxError},
+};
 
 use super::chunk::{Chunk, Value};
+use crate::Result;
 
 const STACK_MAX: usize = 256;
-
-#[derive(Debug)]
-enum RuntimeError {
-    StackOverflow,
-    GenericError,
-}
-
-#[derive(Debug)]
-enum VmError {
-    CompileError,
-    RuntimeError(RuntimeError),
-}
 
 #[derive(Debug)]
 struct VmStack<T> {
@@ -30,23 +22,33 @@ impl<T: Default + Copy> VmStack<T> {
         }
     }
 
-    pub fn push(&mut self, val: T) -> Result<(), VmError> {
+    pub fn push(&mut self, val: T) -> Result<()> {
         if self.stack_top >= 256 {
-            return Err(VmError::RuntimeError(RuntimeError::StackOverflow));
+            return Err(ReloxError::new_runtime_error(
+                0,
+                "StackOverflow bro".to_string(),
+                StackOverFlow,
+            ));
         }
         self.stack[self.stack_top] = val;
         self.stack_top += 1;
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Result<T, VmError> {
+    pub fn pop(&mut self) -> Result<T> {
         if self.stack_top <= 0 {
-            return Err(VmError::CompileError);
+            return Err(ReloxError::new_fatal_error(
+                "Tried to pop invalid index from instruction stack".to_string(),
+            ));
         }
 
         self.stack_top -= 1;
         let val = self.stack[self.stack_top];
         Ok(val)
+    }
+
+    pub fn stack_slice(&self, from: usize, to: usize) -> &[T] {
+        &self.stack[from..to]
     }
 }
 
@@ -68,23 +70,23 @@ impl Vm {
         }
     }
 
-    pub fn run(&mut self) -> Result<Value, VmError> {
+    pub fn run(&mut self) -> Result<Value> {
         loop {
             if let Some(instruction) = self.chunk.instruction_at(self.ip) {
                 self.ip += 1;
 
                 if self.debug_mode {
                     println!("== Current stack ==");
-                    dbg!(&self.instr_stack);
+                    dbg!(&self.instr_stack.stack_slice(0, self.ip + 1));
                     self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
                 }
 
                 match instruction {
                     OpCode::Constant { constant_offset } => {
-                        let the_constant = self
-                            .chunk
-                            .read_constant(*constant_offset)
-                            .ok_or_else(|| VmError::CompileError)?;
+                        let the_constant =
+                            self.chunk.read_constant(*constant_offset).ok_or_else(|| {
+                                ReloxError::new_fatal_error("Constant not set".to_string())
+                            })?;
                         self.instr_stack.push(*the_constant)?;
                     }
                     OpCode::Negate => {
@@ -97,17 +99,19 @@ impl Vm {
                     OpCode::Multiply => self.binary_op(std::ops::Mul::mul)?,
                     OpCode::Return => {
                         let value = self.instr_stack.pop()?;
-                        println!("Return Value is: {:?}", value);
                         return Ok(value);
                     }
                 };
             } else {
-                return Err(VmError::CompileError);
+                return Err(ReloxError::new_fatal_error(format!(
+                    "Read wrong instruction, stacktrace: {:?}",
+                    &self.instr_stack.stack_slice(0, self.ip + 1)
+                )));
             }
         }
     }
 
-    fn binary_op<F>(&mut self, mut op: F) -> Result<(), VmError>
+    fn binary_op<F>(&mut self, mut op: F) -> Result<()>
     where
         F: FnMut(Value, Value) -> Value,
     {
