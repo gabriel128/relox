@@ -1,7 +1,10 @@
+use crate::errors::ErrorKind;
+use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
 use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use crate::Result;
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
@@ -10,18 +13,6 @@ pub enum EvalResult {
     String(String),
     Bool(bool),
     Nil,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct EvalError {
-    pub line: usize,
-    pub message: String,
-}
-
-impl EvalError {
-    pub fn new(line: usize, message: String) -> Self {
-        Self { line, message }
-    }
 }
 
 impl fmt::Display for EvalResult {
@@ -36,11 +27,11 @@ impl fmt::Display for EvalResult {
 }
 
 pub trait Eval {
-    fn eval(&self) -> Result<EvalResult, EvalError>;
+    fn eval(&self) -> Result<EvalResult>;
 }
 
 impl Eval for Expr<'_> {
-    fn eval(&self) -> Result<EvalResult, EvalError> {
+    fn eval(&self) -> Result<EvalResult> {
         match self {
             Expr::Binary(left, token, right) => handle_binary(token, left.eval()?, right.eval()?),
             Expr::Grouping(val) => val.eval(),
@@ -55,21 +46,18 @@ impl Eval for Expr<'_> {
     }
 }
 
-fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult, EvalError> {
+fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult> {
     match (token.token_type, evaled_expr) {
         (TokenType::Minus, EvalResult::Number(the_num)) => Ok(EvalResult::Number(-the_num)),
         (TokenType::Bang, EvalResult::Bool(a_bool)) => Ok(EvalResult::Bool(!a_bool)),
-        (token_type, result) => {
-            let message = format!("{:?} {}", token_type, result);
-            Err(EvalError::new(token.line, message))
-        }
+        (token_type, result) => build_eval_error(token.line, format!("{:?} {}", token_type, result))
     }
 }
 fn handle_binary(
     token: &Token,
     evaled_left: EvalResult,
     evaled_right: EvalResult,
-) -> Result<EvalResult, EvalError> {
+) -> Result<EvalResult> {
     match (token.token_type, evaled_left, evaled_right) {
         (TokenType::Plus, EvalResult::Number(x), EvalResult::Number(y)) => {
             Ok(EvalResult::Number(x + y))
@@ -80,7 +68,7 @@ fn handle_binary(
         (TokenType::Plus, _, _) => {
             let message =
                 "sum parameters must be both numbers or both strings".to_string();
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
         (TokenType::Minus, EvalResult::Number(x), EvalResult::Number(y)) => {
             Ok(EvalResult::Number(x - y))
@@ -89,7 +77,7 @@ fn handle_binary(
             let message =
                 "substraction parameters must be both numbers or both strings"
                     .to_string();
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
         (TokenType::Star, EvalResult::Number(x), EvalResult::Number(y)) => {
             Ok(EvalResult::Number(x * y))
@@ -98,12 +86,12 @@ fn handle_binary(
             let message =
                 "Multiplication parameters must be both numbers or both strings"
                     .to_string();
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
         (TokenType::Slash, EvalResult::Number(x), EvalResult::Number(y)) => {
             if y == 0.0 {
                 let message = "division by zero is undefined bro".to_string();
-                Err(EvalError::new(token.line, message))
+                build_eval_error(token.line, message)
             } else {
                 Ok(EvalResult::Number(x / y))
             }
@@ -111,7 +99,7 @@ fn handle_binary(
         (TokenType::Slash, _, _) => {
             let message = "division parameters must be both numbers or both strings"
                 .to_string();
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
         (TokenType::Greater, EvalResult::Number(x), EvalResult::Number(y)) => {
             Ok(EvalResult::Bool(x > y))
@@ -139,14 +127,24 @@ fn handle_binary(
         (TokenType::EqualEqual, _, EvalResult::Nil) => Ok(EvalResult::Bool(false)),
         (TokenType::EqualEqual, _, _) => {
             let message = "you can't compare pears with apples".to_string();
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
         (TokenType::Nil, _, _) => Ok(EvalResult::Nil),
         (token_type, result, result2) => {
             let message = format!("{:?} can't handle {} {}", token_type, result, result2);
-            Err(EvalError::new(token.line, message))
+            build_eval_error(token.line, message)
         }
     }
+
+}
+
+fn build_eval_error(line: usize, message: String ) -> Result<EvalResult>{
+    let error = ReloxError::new_runtime_error(
+        line,
+        message,
+        ErrorKind::EvalError,
+    );
+    Err(error)
 }
 
 #[cfg(test)]
@@ -158,13 +156,13 @@ mod tests {
     #[test]
     fn test_binary_eval() {
         let mut scanner = Scanner::new("1 + 2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(3.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("\"a\" + \"b\"".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::String("ab".to_string()), res.eval().unwrap());
@@ -173,49 +171,49 @@ mod tests {
     #[test]
     fn test_unary_number_eval() {
         let mut scanner = Scanner::new("-1".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(-1.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("-30.0".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(-30.0), res.eval().unwrap());
 
         let mut scanner = Scanner::new("-true".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(EvalError::new(1, "Minus true".to_string()), res.eval().expect_err(""));
+        assert_eq!(ErrorKind::EvalError, res.eval().expect_err("").kind());
     }
 
     #[test]
     fn test_unary_bool_eval() {
         let mut scanner = Scanner::new("!true".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Bool(false), res.eval().unwrap());
 
         let mut scanner = Scanner::new("!false".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Bool(true), res.eval().unwrap());
 
         let mut scanner = Scanner::new("!2".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
-        assert_eq!(EvalError::new(1, "Bang 2".to_string()), res.eval().expect_err(""));
+        assert_eq!(ErrorKind::EvalError, res.eval().expect_err("").kind());
     }
 
     #[test]
     fn test_grouping_eval() {
         let mut scanner = Scanner::new("(1)".to_string());
-        let tokens = scanner.scan_tokens();
+        let (tokens, _) = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let res = parser.parse().unwrap();
         assert_eq!(EvalResult::Number(1.0), res.eval().unwrap());
