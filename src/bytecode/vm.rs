@@ -5,6 +5,18 @@ use super::chunk::{Chunk, Value};
 const STACK_MAX: usize = 256;
 
 #[derive(Debug)]
+enum RuntimeError {
+    StackOverflow,
+    GenericError,
+}
+
+#[derive(Debug)]
+enum VmError {
+    CompileError,
+    RuntimeError(RuntimeError),
+}
+
+#[derive(Debug)]
 struct VmStack<T> {
     stack: [T; STACK_MAX],
     stack_top: usize,
@@ -27,14 +39,14 @@ impl<T: Default + Copy> VmStack<T> {
         Ok(())
     }
 
-    pub fn pop(&mut self) -> Option<T> {
+    pub fn pop(&mut self) -> Result<T, VmError> {
         if self.stack_top <= 0 {
-            return None;
+            return Err(VmError::CompileError);
         }
 
         self.stack_top -= 1;
         let val = self.stack[self.stack_top];
-        Some(val)
+        Ok(val)
     }
 }
 
@@ -46,29 +58,17 @@ struct Vm {
     debug_mode: bool,
 }
 
-#[derive(Debug)]
-enum RuntimeError {
-    StackOverflow,
-    GenericError,
-}
-
-#[derive(Debug)]
-enum VmError {
-    CompileError,
-    RuntimeError(RuntimeError),
-}
-
 impl Vm {
-    pub fn new(chunk: Chunk) -> Self {
+    pub fn new(chunk: Chunk, debug_mode: bool) -> Self {
         Self {
             chunk,
-            ip: 1,
-            debug_mode: false,
+            debug_mode,
+            ip: 0,
             instr_stack: VmStack::new(),
         }
     }
 
-    pub fn run(&mut self) -> Result<(), VmError> {
+    pub fn run(&mut self) -> Result<Value, VmError> {
         loop {
             if let Some(instruction) = self.chunk.instruction_at(self.ip) {
                 self.ip += 1;
@@ -79,30 +79,42 @@ impl Vm {
                     self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
                 }
 
-                let res = match instruction {
+                match instruction {
                     OpCode::Constant { constant_offset } => {
-                        if let Some(the_constant) = self.chunk.read_constant(*constant_offset) {
-                            self.instr_stack.push(*the_constant)?;
-                            Ok(())
-                        } else {
-                            Err(VmError::CompileError)
-                        }
+                        let the_constant = self
+                            .chunk
+                            .read_constant(*constant_offset)
+                            .ok_or_else(|| VmError::CompileError)?;
+                        self.instr_stack.push(*the_constant)?;
                     }
+                    OpCode::Negate => {
+                        let value = self.instr_stack.pop()?;
+                        self.instr_stack.push(-value)?;
+                    }
+                    OpCode::Add => self.binary_op(std::ops::Add::add)?,
+                    OpCode::Substract => self.binary_op(std::ops::Sub::sub)?,
+                    OpCode::Divide => self.binary_op(std::ops::Div::div)?,
+                    OpCode::Multiply => self.binary_op(std::ops::Mul::mul)?,
                     OpCode::Return => {
-                        if let Some(value) = self.instr_stack.pop() {
-                            println!("Return Value is: {:?}", value);
-                            Ok(())
-                        } else {
-                            Err(VmError::CompileError)
-                        }
-                    },
+                        let value = self.instr_stack.pop()?;
+                        println!("Return Value is: {:?}", value);
+                        return Ok(value);
+                    }
                 };
-
-                return res;
             } else {
                 return Err(VmError::CompileError);
             }
         }
+    }
+
+    fn binary_op<F>(&mut self, mut op: F) -> Result<(), VmError>
+    where
+        F: FnMut(Value, Value) -> Value,
+    {
+        let x = self.instr_stack.pop()?;
+        let y = self.instr_stack.pop()?;
+        self.instr_stack.push(op(x, y))?;
+        Ok(())
     }
 }
 
@@ -113,11 +125,43 @@ mod tests {
     #[test]
     fn test_vm_stack() {
         let mut stack = VmStack::<Value>::new();
-        assert_eq!(stack.pop(), None);
+        assert!(stack.pop().is_err());
         stack.push(63.2).unwrap();
         stack.push(6.2).unwrap();
-        assert_eq!(stack.pop(), Some(6.2));
-        assert_eq!(stack.pop(), Some(63.2));
-        assert_eq!(stack.pop(), None);
+        assert_eq!(stack.pop().unwrap(), 6.2);
+        assert_eq!(stack.pop().unwrap(), 63.2);
+        assert!(stack.pop().is_err());
+    }
+
+    #[test]
+    fn test_negation() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Negate, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), -3.0);
+    }
+
+    #[test]
+    fn test_addition() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Add, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 5.0);
+    }
+
+    #[test]
+    fn test_mult() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Multiply, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 6.0);
     }
 }

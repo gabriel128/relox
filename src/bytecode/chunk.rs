@@ -4,7 +4,12 @@ use std::usize;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OpCode {
     Constant { constant_offset: u8 },
-    Return
+    Negate,
+    Return,
+    Add,
+    Substract,
+    Divide,
+    Multiply,
 }
 
 pub type Value = f64;
@@ -15,16 +20,20 @@ pub type Value = f64;
 pub struct Chunk {
     code: Vec<OpCode>,
     constant_pool: Vec<Value>,
-    lines: Vec<u16>
+    lines: Vec<u16>,
 }
 
 impl Chunk {
     pub fn new() -> Self {
-        Self { code: Vec::new(), constant_pool: Vec::new(), lines: Vec::new() }
+        Self {
+            code: Vec::new(),
+            constant_pool: Vec::new(),
+            lines: Vec::new(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-       self.code.is_empty()
+        self.code.is_empty()
     }
 
     pub fn instruction_at(&self, index: usize) -> Option<&OpCode> {
@@ -40,13 +49,18 @@ impl Chunk {
         self.lines.push(line);
     }
 
-    pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<(), String>{
+    pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<(), String> {
         if self.constant_pool.len() >= 255 {
-            return Err("Constant Pool max reached".to_string())
+            return Err("Constant Pool max reached".to_string());
         }
 
         self.constant_pool.push(constant);
-        self.write_bytecode(OpCode::Constant { constant_offset: (self.constant_pool.len() - 1) as u8}, line);
+        self.write_bytecode(
+            OpCode::Constant {
+                constant_offset: (self.constant_pool.len() - 1) as u8,
+            },
+            line,
+        );
         Ok(())
     }
 
@@ -56,18 +70,28 @@ impl Chunk {
         println!("");
 
         let mut byte_offset = 0;
+
         for (i, opcode) in self.code.iter().enumerate() {
             self.dissasemble_instruction(opcode, i, &mut byte_offset)
         }
-
     }
 
     pub fn dissasemble_instruction(&self, opcode: &OpCode, i: usize, byte_offset: &mut usize) {
         let extra_chunk = match opcode {
-            OpCode::Constant { constant_offset } => format!("{:?}", self.constant_pool[*constant_offset as usize]),
-            OpCode::Return => "".to_string(),
+            OpCode::Constant { constant_offset } => {
+                format!("{:?}", self.constant_pool[*constant_offset as usize])
+            }
+            OpCode::Return
+            | OpCode::Negate
+            | OpCode::Add
+            | OpCode::Substract
+            | OpCode::Divide
+            | OpCode::Multiply => "".to_string(),
         };
-        println!("{:?}             {:?}      {:?}    {}", byte_offset, self.lines[i], opcode, extra_chunk);
+        println!(
+            "{:?}             {:?}      {:?}    {}",
+            byte_offset, self.lines[i], opcode, extra_chunk
+        );
         *byte_offset += std::mem::size_of_val(opcode);
     }
 }
@@ -85,7 +109,7 @@ mod tests {
         println!("Empty Vec {:?}", size_of_val(&vec));
         println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
         vec.push(OpCode::Return);
-        vec.push(OpCode::Constant { constant_offset: 2});
+        vec.push(OpCode::Constant { constant_offset: 2 });
         println!("Size of Vec with return {:?}", size_of_val(&*vec));
 
         let mut chunk = Chunk::new();
