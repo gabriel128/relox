@@ -1,8 +1,8 @@
-use crate::error_handler;
+use crate::errors::ErrorKind::LexError;
 use crate::errors::ReloxError;
 use crate::token::token::{Literal, Token};
-use crate::token::token_type::TokenType;
 use crate::token::token_type::TokenKind;
+use crate::token::token_type::TokenType;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -12,7 +12,7 @@ pub struct Scanner {
     source_chars: Vec<char>,
     source_length: usize,
     tokens: Vec<Token>,
-    errors: Vec<ReloxError>
+    errors: Vec<ReloxError>,
 }
 
 impl Scanner {
@@ -30,16 +30,18 @@ impl Scanner {
             line,
             current_index,
             start,
-            errors: Vec::new()
+            errors: Vec::new(),
         }
     }
 
+    /// Returns a tuple of Tokens and Errors. It uses vector of errors instead of interrupting
+    /// to provide a better experience to (hypotehtical) users by showing all the lexical errors at once.
     pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<ReloxError>) {
         self.run_scan();
         (&self.tokens, &self.errors)
     }
 
-    pub fn run_scan(&mut self) {
+    fn run_scan(&mut self) {
         while let Some(ref source_char) = self.source_chars.get(self.current_index) {
             self.start = self.current_index;
 
@@ -54,12 +56,24 @@ impl Scanner {
                 Some((TokenType::Skip, _)) => {}
                 Some((TokenType::NewLine, _)) => self.line += 1,
                 Some((TokenType::Number, _)) => self.handle_number(),
-                Some(token_type) => error_handler::error(self.line, &format!("Unexpected token {:?}", token_type)),
+                Some(token_type) => {
+                    self.errors.push(ReloxError::new_compile_error(
+                        self.line,
+                        format!("Unexpected token {:?}", token_type),
+                        "".to_string(),
+                        LexError,
+                    ));
+                }
                 None => {
                     if source_char.is_ascii_alphabetic() {
                         self.handle_keyword_or_identifier();
                     } else {
-                        error_handler::error(self.line, &format!("Scanner Error: Unexpected character {}", source_char));
+                        self.errors.push(ReloxError::new_compile_error(
+                            self.line,
+                            "Unexpected Token".to_string(),
+                            "".to_string(),
+                            LexError,
+                        ));
                     }
                 }
             }
@@ -111,7 +125,7 @@ impl Scanner {
     }
 
     fn next_char(&self) -> Option<&char> {
-        self.source_chars.get(self.current_index+1)
+        self.source_chars.get(self.current_index + 1)
     }
 
     fn handle_keyword_or_identifier(&mut self) {
@@ -156,7 +170,12 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            error_handler::error(self.line, "Unterminate string");
+            self.errors.push(ReloxError::new_compile_error(
+                self.line,
+                "String not terminated".to_string(),
+                "".to_string(),
+                LexError,
+            ));
             return;
         }
 
@@ -176,7 +195,7 @@ impl Scanner {
         while let Some(next_char) = self.next_char() {
             if next_char.is_digit(10) {
                 self.advance();
-            }  else if *next_char == '.' && !got_a_dot {
+            } else if *next_char == '.' && !got_a_dot {
                 got_a_dot = true;
                 self.advance();
             } else {
@@ -190,7 +209,7 @@ impl Scanner {
             self.retreat();
         }
 
-        let numstr = &self.substring_source(self.start, self.current_index+1);
+        let numstr = &self.substring_source(self.start, self.current_index + 1);
         let num: Result<f64, _> = numstr.parse();
 
         self.tokens.push(Token::new(

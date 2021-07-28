@@ -1,8 +1,10 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     LexError,
+    ParserError,
+    EvalError
 }
 
 #[derive(Debug)]
@@ -33,6 +35,13 @@ impl ReloxError {
 
     pub fn new_runtime_error(line: usize, message: String, kind: ErrorKind) -> Self {
         Self::RuntimeError( RuntimeError { line, message, kind })
+    }
+
+    pub fn kind(&self) -> ErrorKind {
+        match self {
+            ReloxError::CompilationError(error) => error.kind,
+            ReloxError::RuntimeError(error) => error.kind,
+        }
     }
 }
 
