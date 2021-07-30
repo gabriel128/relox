@@ -61,8 +61,15 @@ fn run_repl() -> Result<()> {
 
 fn run(input: &str) {
     let scanner = Scanner::new(input.to_string());
-    let tokens = scanner.scan_tokens().unwrap();
-    let mut parser = Parser::new(&tokens);
+    let tokens = match scanner.scan_tokens() {
+       Ok(result) => result,
+        Err(error) => {
+            eprintln!("{}", error);
+            Vec::new()
+        }
+    };
+
+    let mut parser = Parser::new(tokens);
     let parse_res = parser.parse().or_else(|error| Err(error.into()));
 
     match parse_res.and_then( |res| res.eval()) {

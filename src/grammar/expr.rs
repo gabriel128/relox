@@ -10,15 +10,15 @@ pub enum ExprLiteral {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Expr<'a> {
+pub enum Expr {
     Literal(ExprLiteral),
-    Grouping(Box<Expr<'a>>),
-    Binary(Box<Expr<'a>>, &'a Token, Box<Expr<'a>>),
-    Unary(&'a Token, Box<Expr<'a>>)
+    Grouping(Box<Expr>),
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Unary(Token, Box<Expr>)
     // More efficient ? Binary(Box<(Expr<'a>, Expr<'a>)>, &'a Token),
 }
 
-impl fmt::Display for Expr<'_> {
+impl fmt::Display for Expr {
      fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
          match self {
             Expr::Binary(left, token, right) => write!(f, "({} {} {})", left, token.lexeme, right),
