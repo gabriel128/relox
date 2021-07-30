@@ -144,6 +144,15 @@ impl<'a> Parser<'a> {
                     )?;
                     Ok(Box::new(Expr::Grouping(expr)))
                 }
+                (TokenType::ErrorToken, _) => {
+                    let error = ReloxError::new_compile_error(
+                        token.line,
+                        format!("Unrecognized Character {:?}", token.lexeme),
+                        None,
+                        ErrorKind::ParserError
+                    );
+                    Err(error)
+                },
                 _token => {
                     let error = ReloxError::new_compile_error(
                         token.line,
