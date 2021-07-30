@@ -1,5 +1,5 @@
-use crate::errors::ErrorKind::LexError;
-use crate::errors::ReloxError;
+use crate::errors::{ReloxError, ErrorKind::LexError};
+use crate::Result;
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenKind;
 use crate::token::token_type::TokenType;
@@ -36,52 +36,44 @@ impl Scanner {
 
     /// Returns a tuple of Tokens and Errors. It uses vector of errors instead of interrupting
     /// to provide a better experience to (hypotehtical) users by showing all the lexical errors at once.
-    pub fn scan_tokens(&mut self) -> (&Vec<Token>, &Vec<ReloxError>) {
-        self.run_scan();
-        (&self.tokens, &self.errors)
+    pub fn scan_tokens(mut self) -> Result<Vec<Token>> {
+        self.run_scan()?;
+        Ok(self.tokens)
     }
 
-    fn run_scan(&mut self) {
-        while let Some(ref source_char) = self.source_chars.get(self.current_index) {
+    fn run_scan(&mut self) -> Result<()> {
+        while let Some(source_char) = self.current_char() {
             self.start = self.current_index;
 
             // println!("Parsing {}, current_index {}", source_char, self.current_index);
             match TokenType::from_single_char(source_char) {
                 Some((token_type, TokenKind::SingleChar)) => self.add_token(token_type),
                 Some((token_type, TokenKind::OneOrTwoChar)) => self.handle_one_or_two(token_type),
-                Some((token_type, TokenKind::SlashOrComment)) => {
-                    self.handle_slash_or_comment(token_type)
-                }
+                Some((token_type, TokenKind::SlashOrComment)) => self.handle_slash_or_comment(token_type),
                 Some((TokenType::String, _)) => self.handle_string(),
                 Some((TokenType::Skip, _)) => {}
                 Some((TokenType::NewLine, _)) => self.line += 1,
                 Some((TokenType::Number, _)) => self.handle_number(),
                 Some(token_type) => {
-                    self.errors.push(ReloxError::new_compile_error(
-                        self.line,
-                        format!("Unexpected token {:?}", token_type),
-                        None,
-                        LexError,
-                    ));
-                }
+                        return Err(ReloxError::new_compile_error(
+                            self.line,
+                            format!("Unexpected token {:?}", token_type),
+                            None,
+                            LexError));
+                },
                 None => {
                     if source_char.is_ascii_alphabetic() {
                         self.handle_keyword_or_identifier();
                     } else {
-                        self.errors.push(ReloxError::new_compile_error(
-                            self.line,
-                            format!("Unexpected Token {}", source_char),
-                            None,
-                            LexError,
-                        ));
+                        self.add_error_token();
                     }
                 }
             }
 
             self.advance();
         }
-        self.tokens
-            .push(Token::new(TokenType::Eof, "", None, self.line))
+        self.tokens.push(Token::new(TokenType::Eof, "", None, self.line));
+        Ok(())
     }
 
     fn handle_slash_or_comment(&mut self, token_type: TokenType) {
@@ -89,7 +81,7 @@ impl Scanner {
         let next_char: Option<&char> = self.source_chars.get(self.current_index + 1);
 
         if let (Some(next_char), Some(current_char)) = (next_char, current_char) {
-            if TokenType::is_comment(*current_char, *next_char) {
+            if TokenType::is_comment(current_char, *next_char) {
                 self.handle_comment();
             } else {
                 self.add_token(token_type);
@@ -104,7 +96,7 @@ impl Scanner {
         let next_char: Option<&char> = self.source_chars.get(self.current_index + 1);
         if let (Some(next_char), Some(current_char)) = (next_char, current_char) {
             let (token_type, lexeme, lexeme_length) =
-                TokenType::from_two_chars(current_char, &next_char, token_type);
+                TokenType::from_two_chars(current_char, *next_char, token_type);
 
             self.add_token_with_lexeme(token_type, &lexeme);
 
@@ -120,12 +112,12 @@ impl Scanner {
         self.current_index >= self.source_length
     }
 
-    fn current_char(&self) -> Option<&char> {
-        self.source_chars.get(self.current_index)
+    fn current_char(&self) -> Option<char> {
+        self.source_chars.get(self.current_index).map(|ch| *ch)
     }
 
-    fn next_char(&self) -> Option<&char> {
-        self.source_chars.get(self.current_index + 1)
+    fn next_char(&self) -> Option<char> {
+        self.source_chars.get(self.current_index + 1).map(|ch| *ch)
     }
 
     fn handle_keyword_or_identifier(&mut self) {
@@ -147,7 +139,7 @@ impl Scanner {
 
     fn handle_comment(&mut self) {
         while let Some(current_char) = self.current_char() {
-            if *current_char == '\n' {
+            if current_char == '\n' {
                 self.line += 1;
                 break;
             } else {
@@ -159,34 +151,45 @@ impl Scanner {
     fn handle_string(&mut self) {
         self.advance();
         while let Some(current_char) = self.current_char() {
-            if *current_char == '\n' {
+            if current_char == '\n' {
                 self.line += 1;
                 self.advance();
-            } else if *current_char != '"' {
+            } else if current_char != '"' {
                 self.advance();
             } else {
                 break;
             }
         }
 
-        if self.is_at_end() {
-            self.errors.push(ReloxError::new_compile_error(
-                self.line,
-                "String not terminated".to_string(),
-                None,
-                LexError,
-            ));
-            return;
-        }
-
         let the_string = &self.substring_source(self.start + 1, self.current_index);
 
-        self.tokens.push(Token::new(
-            TokenType::String,
-            the_string,
-            Some(Literal::String(the_string.to_string())),
-            self.line,
-        ));
+        if self.is_at_end() {
+            self.tokens.push(Token::new(
+                TokenType::ErrorToken,
+                &the_string,
+                None,
+                self.line,
+            ));
+            return;
+        } else {
+            self.tokens.push(Token::new(
+                TokenType::String,
+                the_string,
+                Some(Literal::String(the_string.to_string())),
+                self.line,
+            ));
+        }
+    }
+
+    fn add_error_token(&mut self) {
+        if let Some(source_char) =  self.current_char() {
+            self.tokens.push(Token::new(
+                TokenType::ErrorToken,
+                &source_char.to_string(),
+                None,
+                self.line,
+            ));
+        }
     }
 
     fn handle_number(&mut self) {
@@ -195,7 +198,7 @@ impl Scanner {
         while let Some(next_char) = self.next_char() {
             if next_char.is_digit(10) {
                 self.advance();
-            } else if *next_char == '.' && !got_a_dot {
+            } else if next_char == '.' && !got_a_dot {
                 got_a_dot = true;
                 self.advance();
             } else {

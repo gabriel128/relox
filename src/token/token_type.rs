@@ -54,10 +54,9 @@ pub enum TokenType {
 
     Eof,
 
-    // Skip
     Skip,
-    // New Line
     NewLine,
+    ErrorToken
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,7 +69,7 @@ pub enum TokenKind {
 }
 
 impl TokenType {
-    pub fn from_single_char(a_char: &char) -> Option<(TokenType, TokenKind)> {
+    pub fn from_single_char(a_char: char) -> Option<(TokenType, TokenKind)> {
         let mut char_to_enum = HashMap::<char, (TokenType, TokenKind)>::new();
         char_to_enum.insert('(', (TokenType::LeftParen, TokenKind::SingleChar));
         char_to_enum.insert(')', (TokenType::RightParen, TokenKind::SingleChar));
@@ -115,10 +114,10 @@ impl TokenType {
         char_to_enum.insert('8', (TokenType::Number, TokenKind::Rest));
         char_to_enum.insert('9', (TokenType::Number, TokenKind::Rest));
 
-        char_to_enum.get(a_char).map (|the_type| the_type.clone())
+        char_to_enum.get(&a_char).map (|the_type| the_type.clone())
     }
 
-    pub fn from_two_chars(first_char: &char, second_char: &char, fallback_token_type: TokenType) -> (TokenType, String, usize) {
+    pub fn from_two_chars(first_char: char, second_char: char, fallback_token_type: TokenType) -> (TokenType, String, usize) {
         let mut str_to_enum = HashMap::<String, TokenType>::new();
         str_to_enum.insert("!=".to_string(), TokenType::BangEqual);
         str_to_enum.insert("==".to_string(), TokenType::EqualEqual);
@@ -126,8 +125,8 @@ impl TokenType {
         str_to_enum.insert(">=".to_string(), TokenType::GreaterEqual);
 
         let mut as_str = String::new();
-        as_str.push(*first_char);
-        as_str.push(*second_char);
+        as_str.push(first_char);
+        as_str.push(second_char);
 
 
         if let Some(token_type) = str_to_enum.get(&as_str) {
