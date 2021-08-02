@@ -8,16 +8,16 @@ use crate::Result;
 #[derive(Debug)]
 enum Precedence {
     None,
-    Assignment,  // =
-    Or,          // or
-    And,         // and
-    Equality,    // == !=
-    Comparison,  // < > <= >=
-    Term,        // + -
-    Factor,      // * /
-    Unary,       // ! -
-    Call,        // . ()
-    Primary
+    Assignment, // =
+    Or,         // or
+    And,        // and
+    Equality,   // == !=
+    Comparison, // < > <= >=
+    Term,       // + -
+    Factor,     // * /
+    Unary,      // ! -
+    Call,       // . ()
+    Primary,
 }
 
 impl Precedence {
@@ -46,7 +46,6 @@ impl Precedence {
             Precedence::Primary => 11,
         }
     }
-
 }
 
 #[derive(Debug)]
@@ -62,6 +61,7 @@ impl Compiler {
     pub fn run_with(tokens: Vec<Token>) -> Result<Chunk> {
         Self::new(tokens).compile()
     }
+
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             chunk: Chunk::new(),
@@ -143,31 +143,29 @@ impl Compiler {
         let prev_token = self.prev_token_for(original_cursor)?;
         match prev_token.token_type {
             TokenType::Minus => self.emit_byte(OpCode::Negate),
-            _ => Ok(())
+            _ => Ok(()),
         }
     }
 
     fn binary(&mut self) -> Result<()> {
-        let original_cursor = self.cursor;
-
+        let prev_token_type = self.prev_token_type()?;
+        dbg!(prev_token_type, self.current_token_type()?);
 
         let higher_precedence = Precedence::new(self.current_token_type()?).to_number() + 1;
         self.parse_with_precendece(higher_precedence)?;
 
-        let prev_token = self.prev_token_for(original_cursor)?;
-
-        match prev_token.token_type {
+        match prev_token_type {
             TokenType::Plus => self.emit_byte(OpCode::Add),
             TokenType::Minus => self.emit_byte(OpCode::Substract),
             TokenType::Star => self.emit_byte(OpCode::Multiply),
             TokenType::Slash => self.emit_byte(OpCode::Divide),
-            _ => Ok(())
+            _ => Ok(()),
         }
     }
 
     fn parse_with_precendece(&mut self, precedence: u8) -> Result<()> {
         self.advance()?;
-        // dbg!(&self.tokens, self.current_token(), self.prev_token(), self.cursor);
+        dbg!(self.current_token()?, self.prev_token()?, self.cursor);
         self.parse_prefix_for_type(self.prev_token_type()?)?;
 
         while precedence <= Precedence::new(self.current_token_type()?).to_number() {
@@ -178,11 +176,15 @@ impl Compiler {
     }
 
     fn parse_prefix_for_type(&mut self, token_type: TokenType) -> Result<()> {
+        dbg!("here");
         match token_type {
             TokenType::LeftParen => self.grouping(),
             TokenType::Minus => self.unary(),
             TokenType::Number => self.number(),
-            unreq_token_type => Err(ReloxError::new_fatal_error(format!("Prefix unimplemented for {:?}", unreq_token_type)))
+            unreq_token_type => Err(ReloxError::new_fatal_error(format!(
+                "Prefix unimplemented for {:?}",
+                unreq_token_type
+            ))),
         }
     }
 
@@ -192,7 +194,10 @@ impl Compiler {
             TokenType::Minus => self.binary(),
             TokenType::Plus => self.binary(),
             TokenType::Star => self.binary(),
-            unreq_token_type => Err(ReloxError::new_fatal_error(format!("Infix unimplemented for {:?}", unreq_token_type)))
+            unreq_token_type => Err(ReloxError::new_fatal_error(format!(
+                "Infix unimplemented for {:?}",
+                unreq_token_type
+            ))),
         }
     }
 
@@ -275,8 +280,8 @@ impl Compiler {
 
 #[cfg(test)]
 mod tests {
-    use crate::scanner::scanner::Scanner;
     use crate::bytecode::vm::Vm;
+    use crate::scanner::scanner::Scanner;
 
     use super::*;
 
@@ -284,6 +289,7 @@ mod tests {
     fn test_simple_addition() {
         let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
+        // dbg!(&chunk);
         let val = Vm::run_with(chunk, false).unwrap();
         assert_eq!(val, 3.0);
     }
@@ -300,6 +306,7 @@ mod tests {
     fn test_addition_with_mult() {
         let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
+        dbg!(&chunk);
         let val = Vm::run_with(chunk, false).unwrap();
         assert_eq!(val, 7.0);
     }

@@ -194,4 +194,17 @@ mod tests {
         let mut vm = Vm::new(chunk, false);
         assert_eq!(vm.run().unwrap(), 6.0);
     }
+
+    #[test]
+    fn test_add_mult() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(1.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Multiply, 0);
+        chunk.write_bytecode(OpCode::Add, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 7.0);
+    }
 }
