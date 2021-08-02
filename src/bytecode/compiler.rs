@@ -50,7 +50,7 @@ impl Precedence {
 }
 
 #[derive(Debug)]
-struct Compiler {
+pub struct Compiler {
     chunk: Chunk,
     tokens: Vec<Token>,
     cursor: usize,
@@ -93,7 +93,6 @@ impl Compiler {
         self.consume(TokenType::Eof, "Expect and expression")
     }
 
-    // TODO make it less procedural
     fn advance(&mut self) -> Result<()> {
         loop {
             let token = self.current_token()?;
@@ -230,6 +229,7 @@ impl Compiler {
     // ==  Utility Functions ==
     fn handle_error(&mut self, token: Token, message: &str) {
         if self.panic_mode {
+            self.cursor += 1;
             return;
         }
         self.panic_mode = true;
@@ -280,51 +280,58 @@ mod tests {
 
     use super::*;
 
-    // #[test]
-    // fn test_simple_addition() {
-    //     let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
-    //     let chunk = Compiler::run_with(tokens).unwrap();
-    //     let val = Vm::run_with(chunk, false).unwrap();
-    //     assert_eq!(val, 3.0);
-    // }
+    #[test]
+    fn test_simple_addition() {
+        let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 3.0);
+    }
 
     #[test]
     fn test_simple_substraction() {
         let tokens = Scanner::run_with("3 - 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
-        let val = Vm::run_with(chunk, true).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
         assert_eq!(val, 1.0);
     }
 
-    // #[test]
-    // fn test_addition_with_mult() {
-    //     let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
-    //     let chunk = Compiler::run_with(tokens).unwrap();
-    //     let val = Vm::run_with(chunk, false).unwrap();
-    //     assert_eq!(val, 7.0);
-    // }
+    #[test]
+    fn test_addition_with_mult() {
+        let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 7.0);
+    }
 
-    // #[test]
-    // fn test_addition_with_mult2() {
-    //     let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
-    //     let chunk = Compiler::run_with(tokens).unwrap();
-    //     let val = Vm::run_with(chunk, false).unwrap();
-    //     assert_eq!(val, 5.0);
-    // }
+    #[test]
+    fn test_addition_with_mult2() {
+        let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 5.0);
+    }
 
-    // #[test]
-    // fn test_parens1() {
-    //     let tokens = Scanner::run_with("(1 + 3) * 2".to_string()).unwrap();
-    //     let chunk = Compiler::run_with(tokens).unwrap();
-    //     let val = Vm::run_with(chunk, false).unwrap();
-    //     assert_eq!(val, 8.0);
-    // }
+    #[test]
+    fn test_parens1() {
+        let tokens = Scanner::run_with("(1 + 3) * 2".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 8.0);
+    }
 
-    // #[test]
-    // fn test_parens2() {
-    //     let tokens = Scanner::run_with("(1 + (3 - 1)) * (2 + 2)".to_string()).unwrap();
-    //     let chunk = Compiler::run_with(tokens).unwrap();
-    //     let val = Vm::run_with(chunk, false).unwrap();
-    //     assert_eq!(val, 12.0);
-    // }
+    #[test]
+    fn test_parens2() {
+        let tokens = Scanner::run_with("(1 + (3 - 1)) * (2 + 2)".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 12.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_syntax_error() {
+        let tokens = Scanner::run_with("##$".to_string()).unwrap();
+        Compiler::run_with(tokens).unwrap();
+    }
 }
