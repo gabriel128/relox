@@ -16,6 +16,10 @@ pub struct Scanner {
 }
 
 impl Scanner {
+    pub fn run_with(source: String) -> Result<Vec<Token>> {
+        Self::new(source).scan_tokens()
+    }
+
     pub fn new(source: String) -> Self {
         let tokens = Vec::new();
         let source_chars: Vec<char> = source.chars().collect();

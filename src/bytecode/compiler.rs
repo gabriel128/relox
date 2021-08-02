@@ -48,6 +48,9 @@ struct Compiler {
 }
 
 impl Compiler {
+    pub fn run_with(tokens: Vec<Token>) -> Result<Chunk> {
+        Self::new(tokens).compile()
+    }
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             chunk: Chunk::new(),
@@ -58,7 +61,7 @@ impl Compiler {
         }
     }
 
-    pub fn compile(&mut self) -> Result<()> {
+    pub fn compile(mut self) -> Result<Chunk> {
         if self.had_error {
             return Err(ReloxError::new_compile_error(
                 0,
@@ -71,7 +74,7 @@ impl Compiler {
         self.parse()?;
 
         self.emit_return()?;
-        Ok(())
+        Ok(self.chunk)
     }
 
     pub fn parse(&mut self) -> Result<()> {
@@ -279,31 +282,25 @@ mod tests {
 
     #[test]
     fn test_simple_addition() {
-        let scanner = Scanner::new("1 + 2".to_string());
-        let tokens = scanner.scan_tokens().unwrap();
-        let mut compiler = Compiler::new(tokens);
-        compiler.compile().unwrap();
-        let mut vm = Vm::new(compiler.chunk, false);
-        assert_eq!(vm.run().unwrap(), 3.0);
+        let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 3.0);
     }
 
     #[test]
     fn test_addition_with_mult() {
-        let scanner = Scanner::new("1 + 2 * 3".to_string());
-        let tokens = scanner.scan_tokens().unwrap();
-        let mut compiler = Compiler::new(tokens);
-        compiler.compile().unwrap();
-        let mut vm = Vm::new(compiler.chunk, false);
-        assert_eq!(vm.run().unwrap(), 7.0);
+        let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 7.0);
     }
 
     #[test]
     fn test_addition_with_mult2() {
-        let scanner = Scanner::new("1 * 2 + 3".to_string());
-        let tokens = scanner.scan_tokens().unwrap();
-        let mut compiler = Compiler::new(tokens);
-        compiler.compile().unwrap();
-        let mut vm = Vm::new(compiler.chunk, false);
-        assert_eq!(vm.run().unwrap(), 5.0);
+        let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
+        let chunk = Compiler::run_with(tokens).unwrap();
+        let val = Vm::run_with(chunk, false).unwrap();
+        assert_eq!(val, 5.0);
     }
 }

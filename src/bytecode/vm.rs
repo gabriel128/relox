@@ -61,6 +61,10 @@ pub struct Vm {
 }
 
 impl Vm {
+    pub fn run_with(chunk: Chunk, debug_mode: bool) -> Result<Value>{
+        Self::new(chunk, debug_mode).run()
+    }
+
     pub fn new(chunk: Chunk, debug_mode: bool) -> Self {
         Self {
             chunk,
