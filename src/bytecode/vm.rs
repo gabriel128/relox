@@ -53,7 +53,7 @@ impl<T: Default + Copy> VmStack<T> {
 }
 
 #[derive(Debug)]
-struct Vm {
+pub struct Vm {
     chunk: Chunk,
     ip: usize,
     instr_stack: VmStack<Value>,

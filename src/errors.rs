@@ -5,6 +5,7 @@ pub enum ErrorKind {
     StackOverFlow,
     LexError,
     ParserError,
+    CompileError,
     EvalError,
     Fatal,
     IO
