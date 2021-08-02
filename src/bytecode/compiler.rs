@@ -21,6 +21,16 @@ enum Precedence {
 }
 
 impl Precedence {
+    pub fn new(token_type: TokenType) -> Self {
+        match token_type {
+            TokenType::Slash => Precedence::Factor,
+            TokenType::Star => Precedence::Factor,
+            TokenType::Minus => Precedence::Term,
+            TokenType::Plus => Precedence::Term,
+            _ => Precedence::None,
+        }
+    }
+
     pub fn to_number(&self) -> u8 {
         match self {
             Precedence::None => 1,
@@ -36,6 +46,7 @@ impl Precedence {
             Precedence::Primary => 11,
         }
     }
+
 }
 
 #[derive(Debug)]
@@ -78,7 +89,6 @@ impl Compiler {
     }
 
     pub fn parse(&mut self) -> Result<()> {
-        // self.advance()?;
         self.expression()?;
         self.consume(TokenType::Eof, "Expect and expression")
     }
@@ -142,7 +152,7 @@ impl Compiler {
         let original_cursor = self.cursor;
 
 
-        let higher_precedence = self.precedence_for_type(self.current_token_type()?).to_number() + 1;
+        let higher_precedence = Precedence::new(self.current_token_type()?).to_number() + 1;
         self.parse_with_precendece(higher_precedence)?;
 
         let prev_token = self.prev_token_for(original_cursor)?;
@@ -161,21 +171,11 @@ impl Compiler {
         // dbg!(&self.tokens, self.current_token(), self.prev_token(), self.cursor);
         self.parse_prefix_for_type(self.prev_token_type()?)?;
 
-        while precedence <= self.precedence_for_type(self.current_token_type()?).to_number() {
+        while precedence <= Precedence::new(self.current_token_type()?).to_number() {
             self.advance()?;
             self.parse_infix_for_type(self.prev_token_type()?)?
         }
         Ok(())
-    }
-
-    fn precedence_for_type(&self, token_type: TokenType) -> Precedence {
-        match token_type {
-            TokenType::Slash => Precedence::Factor,
-            TokenType::Minus => Precedence::Factor,
-            TokenType::Plus => Precedence::Term,
-            TokenType::Star => Precedence::Term,
-            _ => Precedence::None,
-        }
     }
 
     fn parse_prefix_for_type(&mut self, token_type: TokenType) -> Result<()> {
@@ -280,27 +280,51 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_simple_addition() {
-        let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
-        let chunk = Compiler::run_with(tokens).unwrap();
-        let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 3.0);
-    }
+    // #[test]
+    // fn test_simple_addition() {
+    //     let tokens = Scanner::run_with("1 + 2".to_string()).unwrap();
+    //     let chunk = Compiler::run_with(tokens).unwrap();
+    //     let val = Vm::run_with(chunk, false).unwrap();
+    //     assert_eq!(val, 3.0);
+    // }
 
     #[test]
-    fn test_addition_with_mult() {
-        let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
+    fn test_simple_substraction() {
+        let tokens = Scanner::run_with("3 - 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
-        let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 7.0);
+        let val = Vm::run_with(chunk, true).unwrap();
+        assert_eq!(val, 1.0);
     }
 
-    #[test]
-    fn test_addition_with_mult2() {
-        let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
-        let chunk = Compiler::run_with(tokens).unwrap();
-        let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 5.0);
-    }
+    // #[test]
+    // fn test_addition_with_mult() {
+    //     let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
+    //     let chunk = Compiler::run_with(tokens).unwrap();
+    //     let val = Vm::run_with(chunk, false).unwrap();
+    //     assert_eq!(val, 7.0);
+    // }
+
+    // #[test]
+    // fn test_addition_with_mult2() {
+    //     let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
+    //     let chunk = Compiler::run_with(tokens).unwrap();
+    //     let val = Vm::run_with(chunk, false).unwrap();
+    //     assert_eq!(val, 5.0);
+    // }
+
+    // #[test]
+    // fn test_parens1() {
+    //     let tokens = Scanner::run_with("(1 + 3) * 2".to_string()).unwrap();
+    //     let chunk = Compiler::run_with(tokens).unwrap();
+    //     let val = Vm::run_with(chunk, false).unwrap();
+    //     assert_eq!(val, 8.0);
+    // }
+
+    // #[test]
+    // fn test_parens2() {
+    //     let tokens = Scanner::run_with("(1 + (3 - 1)) * (2 + 2)".to_string()).unwrap();
+    //     let chunk = Compiler::run_with(tokens).unwrap();
+    //     let val = Vm::run_with(chunk, false).unwrap();
+    //     assert_eq!(val, 12.0);
+    // }
 }
