@@ -1,4 +1,5 @@
 use std::usize;
+use crate::{Result, errors::ReloxError};
 
 /// Op Codes
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -11,6 +12,7 @@ pub enum OpCode {
     Divide,
     Multiply,
 }
+const CONSTANT_POOL_MAX: usize = 255;
 
 pub type Value = f64;
 /// Chunk
@@ -49,9 +51,11 @@ impl Chunk {
         self.lines.push(line);
     }
 
-    pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<(), String> {
-        if self.constant_pool.len() >= 255 {
-            return Err("Constant Pool max reached".to_string());
+    pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<()> {
+        if self.constant_pool.len() >= CONSTANT_POOL_MAX {
+            return Err(
+                ReloxError::new_fatal_error("Constant Pool max reached".to_string())
+            );
         }
 
         self.constant_pool.push(constant);

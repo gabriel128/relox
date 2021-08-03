@@ -53,7 +53,7 @@ impl<T: Default + Copy> VmStack<T> {
 }
 
 #[derive(Debug)]
-struct Vm {
+pub struct Vm {
     chunk: Chunk,
     ip: usize,
     instr_stack: VmStack<Value>,
@@ -61,6 +61,10 @@ struct Vm {
 }
 
 impl Vm {
+    pub fn run_with(chunk: Chunk, debug_mode: bool) -> Result<Value>{
+        Self::new(chunk, debug_mode).run()
+    }
+
     pub fn new(chunk: Chunk, debug_mode: bool) -> Self {
         Self {
             chunk,
@@ -77,7 +81,7 @@ impl Vm {
 
                 if self.debug_mode {
                     println!("== Current stack ==");
-                    dbg!(&self.instr_stack.stack_slice(0, self.ip + 1));
+                    println!("{:?}", &self.instr_stack.stack_slice(0, self.ip + 1));
                     self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
                 }
 
@@ -117,7 +121,7 @@ impl Vm {
     {
         let x = self.instr_stack.pop()?;
         let y = self.instr_stack.pop()?;
-        self.instr_stack.push(op(x, y))?;
+        self.instr_stack.push(op(y, x))?;
         Ok(())
     }
 }
@@ -159,6 +163,28 @@ mod tests {
     }
 
     #[test]
+    fn test_subsraction() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Substract, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 1.0);
+    }
+
+    #[test]
+    fn test_division() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(6.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Divide, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 3.0);
+    }
+
+    #[test]
     fn test_mult() {
         let mut chunk = Chunk::new();
         chunk.add_constant(3.0, 0).unwrap();
@@ -167,5 +193,18 @@ mod tests {
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
         assert_eq!(vm.run().unwrap(), 6.0);
+    }
+
+    #[test]
+    fn test_add_mult() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(1.0, 0).unwrap();
+        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(3.0, 0).unwrap();
+        chunk.write_bytecode(OpCode::Multiply, 0);
+        chunk.write_bytecode(OpCode::Add, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), 7.0);
     }
 }

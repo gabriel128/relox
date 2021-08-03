@@ -1,5 +1,9 @@
 #![warn(missing_debug_implementations)]
 
+use bytecode::chunk::Value;
+
+use crate::bytecode::compiler::Compiler;
+use crate::bytecode::vm::Vm;
 use crate::eval::interpreted_eval::Eval;
 use crate::parser::parser::Parser;
 use crate::scanner::scanner::Scanner;
@@ -54,26 +58,22 @@ fn run_repl() -> Result<()> {
         if result == 0 {
             return Ok(());
         } else {
-            run(&buffer);
+            match run(&buffer) {
+                Ok(eval_result) => println!("{}", eval_result),
+                Err(error) => eprintln!("{}", error)
+            };
         }
     }
 }
 
-fn run(input: &str) {
-    let scanner = Scanner::new(input.to_string());
-    let tokens = match scanner.scan_tokens() {
-       Ok(result) => result,
-        Err(error) => {
-            eprintln!("{}", error);
-            Vec::new()
-        }
-    };
-
-    let mut parser = Parser::new(tokens);
-    let parse_res = parser.parse().or_else(|error| Err(error.into()));
-
-    match parse_res.and_then( |res| res.eval()) {
-       Ok(eval_result) => println!("{}", eval_result),
-       Err(error) => eprintln!("{}", error)
-    }
+fn run(input: &str) -> Result<Value> {
+    let tokens = Scanner::run_with(input.to_string())?;
+    // let mut parser = Parser::run(tokens);
+    // let parse_res = parser.parse().or_else(|error| Err(error.into()));
+    // match parse_res.and_then( |res| res.eval()) {
+    //    Ok(eval_result) => println!("{}", eval_result),
+    //    Err(error) => eprintln!("{}", error)
+    // }
+    let byte_code_chunk = Compiler::run_with(tokens)?;
+    Vm::run_with(byte_code_chunk, false)
 }
