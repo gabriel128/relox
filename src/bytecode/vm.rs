@@ -1,9 +1,12 @@
 use crate::{
     bytecode::chunk::OpCode,
-    errors::{ErrorKind::StackOverFlow, ReloxError},
+    errors::{
+        ErrorKind::{RuntimeError, StackOverFlow},
+        ReloxError,
+    },
 };
 
-use super::chunk::{Chunk, Value};
+use super::{chunk::Chunk, value::Value};
 use crate::Result;
 
 const STACK_MAX: usize = 256;
@@ -61,7 +64,7 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn run_with(chunk: Chunk, debug_mode: bool) -> Result<Value>{
+    pub fn run_with(chunk: Chunk, debug_mode: bool) -> Result<Value> {
         Self::new(chunk, debug_mode).run()
     }
 
@@ -95,7 +98,17 @@ impl Vm {
                     }
                     OpCode::Negate => {
                         let value = self.instr_stack.pop()?;
-                        self.instr_stack.push(-value)?;
+                        match -value {
+                            Ok(neg_value) => self.instr_stack.push(neg_value)?,
+                            Err(error_msg) => {
+                                let line_num = self.chunk.line_at(self.ip - 1);
+                                return Err(ReloxError::new_runtime_error(
+                                    line_num as usize,
+                                    error_msg.to_string(),
+                                    RuntimeError,
+                                ));
+                            }
+                        };
                     }
                     OpCode::Add => self.binary_op(std::ops::Add::add)?,
                     OpCode::Substract => self.binary_op(std::ops::Sub::sub)?,
@@ -117,12 +130,21 @@ impl Vm {
 
     fn binary_op<F>(&mut self, mut op: F) -> Result<()>
     where
-        F: FnMut(Value, Value) -> Value,
+        F: FnMut(Value, Value) -> Result<Value>,
     {
         let x = self.instr_stack.pop()?;
         let y = self.instr_stack.pop()?;
-        self.instr_stack.push(op(y, x))?;
-        Ok(())
+        match op(y, x) {
+            Ok(value) => self.instr_stack.push(value),
+            Err(error_msg) => {
+                let line_num = self.chunk.line_at(self.ip - 1);
+                Err(ReloxError::new_runtime_error(
+                    line_num as usize,
+                    error_msg.to_string(),
+                    RuntimeError,
+                ))
+            }
+        }
     }
 }
 
@@ -134,77 +156,77 @@ mod tests {
     fn test_vm_stack() {
         let mut stack = VmStack::<Value>::new();
         assert!(stack.pop().is_err());
-        stack.push(63.2).unwrap();
-        stack.push(6.2).unwrap();
-        assert_eq!(stack.pop().unwrap(), 6.2);
-        assert_eq!(stack.pop().unwrap(), 63.2);
+        stack.push(Value::Number(63.2)).unwrap();
+        stack.push(Value::Number(6.2)).unwrap();
+        assert_eq!(stack.pop().unwrap(), Value::Number(6.2));
+        assert_eq!(stack.pop().unwrap(), Value::Number(63.2));
         assert!(stack.pop().is_err());
     }
 
     #[test]
     fn test_negation() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(3.0, 0).unwrap();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Negate, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), -3.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(-3.0));
     }
 
     #[test]
     fn test_addition() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(3.0, 0).unwrap();
-        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
+        chunk.add_constant(Value::Number(2.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Add, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), 5.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(5.0));
     }
 
     #[test]
     fn test_subsraction() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(3.0, 0).unwrap();
-        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
+        chunk.add_constant(Value::Number(2.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Substract, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), 1.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(1.0));
     }
 
     #[test]
     fn test_division() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(6.0, 0).unwrap();
-        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(Value::Number(6.0), 0).unwrap();
+        chunk.add_constant(Value::Number(2.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Divide, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), 3.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(3.0));
     }
 
     #[test]
     fn test_mult() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(3.0, 0).unwrap();
-        chunk.add_constant(2.0, 0).unwrap();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
+        chunk.add_constant(Value::Number(2.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Multiply, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), 6.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(6.0));
     }
 
     #[test]
     fn test_add_mult() {
         let mut chunk = Chunk::new();
-        chunk.add_constant(1.0, 0).unwrap();
-        chunk.add_constant(2.0, 0).unwrap();
-        chunk.add_constant(3.0, 0).unwrap();
+        chunk.add_constant(Value::Number(1.0), 0).unwrap();
+        chunk.add_constant(Value::Number(2.0), 0).unwrap();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
         chunk.write_bytecode(OpCode::Multiply, 0);
         chunk.write_bytecode(OpCode::Add, 0);
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
-        assert_eq!(vm.run().unwrap(), 7.0);
+        assert_eq!(vm.run().unwrap(), Value::Number(7.0));
     }
 }

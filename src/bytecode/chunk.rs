@@ -1,6 +1,8 @@
 use std::usize;
 use crate::{Result, errors::ReloxError};
 
+use super::value::Value;
+
 /// Op Codes
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OpCode {
@@ -14,7 +16,6 @@ pub enum OpCode {
 }
 const CONSTANT_POOL_MAX: usize = 255;
 
-pub type Value = f64;
 /// Chunk
 ///
 /// Represents a chunk of Opcodes. It can be thought as an array of bytes
@@ -40,6 +41,10 @@ impl Chunk {
 
     pub fn instruction_at(&self, index: usize) -> Option<&OpCode> {
         self.code.get(index)
+    }
+
+    pub fn line_at(&self, index: usize) -> u16 {
+        *self.lines.get(index).unwrap_or(&0)
     }
 
     pub fn read_constant(&self, index: u8) -> Option<&Value> {

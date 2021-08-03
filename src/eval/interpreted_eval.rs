@@ -150,8 +150,7 @@ fn build_eval_error(line: usize, message: String ) -> Result<EvalResult>{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Parser;
-    use crate::Scanner;
+    use crate::{Scanner, parser::parser::Parser};
 
     #[test]
     fn test_binary_eval() {

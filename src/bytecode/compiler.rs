@@ -1,4 +1,5 @@
 use super::chunk::{Chunk, OpCode};
+use super::value::Value;
 use crate::errors::ErrorKind::ParserError;
 use crate::errors::{ErrorKind::Fatal, ReloxError};
 use crate::token::token::Literal;
@@ -149,7 +150,7 @@ impl Compiler {
 
     fn binary(&mut self) -> Result<()> {
         let prev_token_type = self.prev_token_type()?;
-        dbg!(prev_token_type, self.current_token_type()?);
+        // dbg!(prev_token_type, self.current_token_type()?);
 
         let higher_precedence = Precedence::new(self.current_token_type()?).to_number() + 1;
         self.parse_with_precendece(higher_precedence)?;
@@ -165,7 +166,7 @@ impl Compiler {
 
     fn parse_with_precendece(&mut self, precedence: u8) -> Result<()> {
         self.advance()?;
-        dbg!(self.current_token()?, self.prev_token()?, self.cursor);
+        // dbg!(self.current_token()?, self.prev_token()?, self.cursor);
         self.parse_prefix_for_type(self.prev_token_type()?)?;
 
         while precedence <= Precedence::new(self.current_token_type()?).to_number() {
@@ -176,7 +177,6 @@ impl Compiler {
     }
 
     fn parse_prefix_for_type(&mut self, token_type: TokenType) -> Result<()> {
-        dbg!("here");
         match token_type {
             TokenType::LeftParen => self.grouping(),
             TokenType::Minus => self.unary(),
@@ -207,7 +207,7 @@ impl Compiler {
         match prev_token.literal {
             Some(Literal::Double(value)) => {
                 let token_line = prev_token.line as u16;
-                self.chunk.add_constant(value, token_line)?;
+                self.chunk.add_constant(Value::Number(value as f32), token_line)?;
                 Ok(())
             }
             _ => Err(ReloxError::new_compile_error(
@@ -291,7 +291,7 @@ mod tests {
         let chunk = Compiler::run_with(tokens).unwrap();
         // dbg!(&chunk);
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 3.0);
+        assert_eq!(val, Value::Number(3.0));
     }
 
     #[test]
@@ -299,16 +299,15 @@ mod tests {
         let tokens = Scanner::run_with("3 - 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 1.0);
+        assert_eq!(val, Value::Number(1.0));
     }
 
     #[test]
     fn test_addition_with_mult() {
         let tokens = Scanner::run_with("1 + 2 * 3".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
-        dbg!(&chunk);
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 7.0);
+        assert_eq!(val, Value::Number(7.0));
     }
 
     #[test]
@@ -316,7 +315,7 @@ mod tests {
         let tokens = Scanner::run_with("1 * 3 + 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 5.0);
+        assert_eq!(val, Value::Number(5.0));
     }
 
     #[test]
@@ -324,7 +323,7 @@ mod tests {
         let tokens = Scanner::run_with("(1 + 3) * 2".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 8.0);
+        assert_eq!(val, Value::Number(8.0));
     }
 
     #[test]
@@ -332,7 +331,7 @@ mod tests {
         let tokens = Scanner::run_with("(1 + (3 - 1)) * (2 + 2)".to_string()).unwrap();
         let chunk = Compiler::run_with(tokens).unwrap();
         let val = Vm::run_with(chunk, false).unwrap();
-        assert_eq!(val, 12.0);
+        assert_eq!(val, Value::Number(12.0));
     }
 
     #[test]

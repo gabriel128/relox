@@ -1,11 +1,11 @@
 #![warn(missing_debug_implementations)]
 
-use bytecode::chunk::Value;
+use bytecode::value::Value;
 
 use crate::bytecode::compiler::Compiler;
 use crate::bytecode::vm::Vm;
-use crate::eval::interpreted_eval::Eval;
-use crate::parser::parser::Parser;
+// use crate::eval::interpreted_eval::Eval;
+// use crate::parser::parser::Parser;
 use crate::scanner::scanner::Scanner;
 use std::env;
 use std::io;
