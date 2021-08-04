@@ -129,10 +129,12 @@ impl Scanner {
             if current_char.is_ascii_alphanumeric() {
                 self.advance();
             } else {
+                self.retreat();
                 break;
             }
         }
-        let lexeme = self.substring_source(self.start, self.current_index);
+
+        let lexeme = self.substring_source(self.start, self.current_index+1);
 
         if let Some(keyword_type) = TokenType::keyword(&lexeme) {
             self.add_token_with_lexeme(keyword_type, &lexeme);
@@ -217,7 +219,7 @@ impl Scanner {
         }
 
         let numstr = &self.substring_source(self.start, self.current_index + 1);
-        let num: Result<f64, _> = numstr.parse();
+        let num: Result<f32, _> = numstr.parse();
 
         self.tokens.push(Token::new(
             TokenType::Number,
