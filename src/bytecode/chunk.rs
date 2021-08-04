@@ -13,6 +13,9 @@ pub enum OpCode {
     Substract,
     Divide,
     Multiply,
+    Nil,
+    True,
+    False
 }
 const CONSTANT_POOL_MAX: usize = 255;
 
@@ -90,12 +93,7 @@ impl Chunk {
             OpCode::Constant { constant_offset } => {
                 format!("{:?}", self.constant_pool[*constant_offset as usize])
             }
-            OpCode::Return
-            | OpCode::Negate
-            | OpCode::Add
-            | OpCode::Substract
-            | OpCode::Divide
-            | OpCode::Multiply => "".to_string(),
+            _ => "".to_string(),
         };
         println!(
             "{:?}             {:?}      {:?}    {}",
@@ -107,24 +105,25 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    // use std::mem::size_of_val;
+    use std::mem::size_of_val;
 
-    // use super::*;
+    use super::*;
 
     #[test]
     fn test_chunk() {
-        // let mut vec = Vec::<OpCode>::new();
+        let mut chunk = Chunk::new();
+        chunk.add_constant(Value::Number(3.0), 22).unwrap();
+        chunk.add_constant(Value::Number(4.0), 22).unwrap();
+        chunk.write_bytecode(OpCode::Add, 22);
+        chunk.write_bytecode(OpCode::Return, 23);
 
-        // println!("Empty Vec {:?}", size_of_val(&vec));
-        // println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
-        // vec.push(OpCode::Return);
-        // vec.push(OpCode::Constant { constant_offset: 2 });
-        // println!("Size of Vec with return {:?}", size_of_val(&*vec));
-
-        // let mut chunk = Chunk::new();
-        // chunk.add_constant(3.0, 22).unwrap();
-        // chunk.add_constant(4.0, 22).unwrap();
-        // chunk.write_bytecode(OpCode::Return, 23);
+        println!("Size of bool {:?}", size_of_val(&Value::Number(3.3)));
+        println!("Size of Value {:?}", size_of_val(&Value::Number(3.3)));
+        println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
+        println!("Chunk size {:?}", size_of_val(&chunk));
+        println!("Chunk instr code size {:?}", size_of_val(&chunk.code));
+        println!("Constant pool size {:?}", size_of_val(&chunk.constant_pool));
+        println!("Chink lines size {:?}", size_of_val(&chunk.lines));
         // chunk.dissasemble();
     }
 }

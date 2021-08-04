@@ -5,7 +5,7 @@ use crate::token::token::Token;
 pub enum ExprLiteral {
    Bool(bool),
    String(String),
-   Number(f64),
+   Number(f32),
    Nil
 }
 

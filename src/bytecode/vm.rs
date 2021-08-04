@@ -59,7 +59,7 @@ impl<T: Default + Copy> VmStack<T> {
 pub struct Vm {
     chunk: Chunk,
     ip: usize,
-    instr_stack: VmStack<Value>,
+    value_stack: VmStack<Value>,
     debug_mode: bool,
 }
 
@@ -73,7 +73,7 @@ impl Vm {
             chunk,
             debug_mode,
             ip: 0,
-            instr_stack: VmStack::new(),
+            value_stack: VmStack::new(),
         }
     }
 
@@ -84,7 +84,7 @@ impl Vm {
 
                 if self.debug_mode {
                     println!("== Current stack ==");
-                    println!("{:?}", &self.instr_stack.stack_slice(0, self.ip + 1));
+                    println!("{:?}", &self.value_stack.stack_slice(0, self.ip + 1));
                     self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
                 }
 
@@ -94,12 +94,12 @@ impl Vm {
                             self.chunk.read_constant(*constant_offset).ok_or_else(|| {
                                 ReloxError::new_fatal_error("Constant not set".to_string())
                             })?;
-                        self.instr_stack.push(*the_constant)?;
+                        self.value_stack.push(*the_constant)?;
                     }
                     OpCode::Negate => {
-                        let value = self.instr_stack.pop()?;
+                        let value = self.value_stack.pop()?;
                         match -value {
-                            Ok(neg_value) => self.instr_stack.push(neg_value)?,
+                            Ok(neg_value) => self.value_stack.push(neg_value)?,
                             Err(error_msg) => {
                                 let line_num = self.chunk.line_at(self.ip - 1);
                                 return Err(ReloxError::new_runtime_error(
@@ -115,14 +115,17 @@ impl Vm {
                     OpCode::Divide => self.binary_op(std::ops::Div::div)?,
                     OpCode::Multiply => self.binary_op(std::ops::Mul::mul)?,
                     OpCode::Return => {
-                        let value = self.instr_stack.pop()?;
+                        let value = self.value_stack.pop()?;
                         return Ok(value);
-                    }
+                    },
+                    OpCode::Nil => self.value_stack.push(Value::Nil)?,
+                    OpCode::True => self.value_stack.push(Value::Bool(true))?,
+                    OpCode::False => self.value_stack.push(Value::Bool(false))?,
                 };
             } else {
                 return Err(ReloxError::new_fatal_error(format!(
                     "Read wrong instruction, stacktrace: {:?}",
-                    &self.instr_stack.stack_slice(0, self.ip + 1)
+                    &self.value_stack.stack_slice(0, self.ip + 1)
                 )));
             }
         }
@@ -132,10 +135,10 @@ impl Vm {
     where
         F: FnMut(Value, Value) -> Result<Value>,
     {
-        let x = self.instr_stack.pop()?;
-        let y = self.instr_stack.pop()?;
+        let x = self.value_stack.pop()?;
+        let y = self.value_stack.pop()?;
         match op(y, x) {
-            Ok(value) => self.instr_stack.push(value),
+            Ok(value) => self.value_stack.push(value),
             Err(error_msg) => {
                 let line_num = self.chunk.line_at(self.ip - 1);
                 Err(ReloxError::new_runtime_error(

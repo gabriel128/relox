@@ -5,9 +5,9 @@ use crate::Result;
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Value {
-    Number(f32),
     Bool(bool),
-    Nil
+    Number(f32),
+    Nil,
 }
 
 impl Display for Value {

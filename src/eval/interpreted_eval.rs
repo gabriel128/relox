@@ -9,7 +9,7 @@ use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum EvalResult {
-    Number(f64),
+    Number(f32),
     String(String),
     Bool(bool),
     Nil,
