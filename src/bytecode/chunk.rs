@@ -77,7 +77,7 @@ impl Chunk {
     pub fn dissasemble(&self) {
         println!("== Dissasembling Chunk ==");
         println!("byte_offset   lines   op    data");
-        println!("");
+        println!();
 
         let mut byte_offset = 0;
 

@@ -114,7 +114,7 @@ impl TokenType {
         char_to_enum.insert('8', (TokenType::Number, TokenKind::Rest));
         char_to_enum.insert('9', (TokenType::Number, TokenKind::Rest));
 
-        char_to_enum.get(&a_char).map(|the_type| the_type.clone())
+        char_to_enum.get(&a_char).copied()
     }
 
     pub fn from_two_chars(
@@ -158,12 +158,10 @@ impl TokenType {
         keywords.insert(String::from("var"), TokenType::Var);
         keywords.insert(String::from("while"), TokenType::While);
 
-        keywords.get(a_string).map(|the_type| the_type.clone())
+        keywords.get(a_string).copied()
     }
 
     pub fn is_comment(first_char: char, second_char: char) -> bool {
-        let res = first_char == '/' && second_char == '/';
-        // eprintln!("Got here {}, {}, {}", res, first_char, second_char);
-        res
+        first_char == '/' && second_char == '/'
     }
 }

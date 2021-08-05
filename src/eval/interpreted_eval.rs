@@ -2,7 +2,7 @@ use crate::errors::ErrorKind;
 use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
-use crate::token::token::Token;
+use crate::token::Token;
 use crate::token::token_type::TokenType;
 use crate::Result;
 use std::fmt;
@@ -112,10 +112,12 @@ fn handle_binary(
             Ok(EvalResult::Bool(x <= y))
         }
         (TokenType::BangEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
-            Ok(EvalResult::Bool(x != y))
+            let val = (x - y).abs() >= std::f32::EPSILON;
+            Ok(EvalResult::Bool(val))
         }
         (TokenType::EqualEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
-            Ok(EvalResult::Bool(x == y))
+            let val = (x - y).abs() < std::f32::EPSILON;
+            Ok(EvalResult::Bool(val))
         }
         (TokenType::EqualEqual, EvalResult::String(x), EvalResult::String(y)) => {
             Ok(EvalResult::Bool(x == y))
@@ -142,7 +144,7 @@ fn build_eval_error(line: usize, message: String) -> Result<EvalResult> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{parser::parser::Parser, Scanner};
+    use crate::{parser::Parser, Scanner};
 
     #[test]
     fn test_binary_eval() {

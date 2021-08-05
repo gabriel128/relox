@@ -1,4 +1,6 @@
-use crate::token::token_type::TokenType;
+pub mod token_type;
+
+use token_type::TokenType;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone)]

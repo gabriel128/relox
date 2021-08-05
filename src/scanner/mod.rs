@@ -1,5 +1,5 @@
 use crate::errors::{ErrorKind::LexError, ReloxError};
-use crate::token::token::{Literal, Token};
+use crate::token::{Literal, Token};
 use crate::token::token_type::TokenKind;
 use crate::token::token_type::TokenType;
 use crate::Result;
@@ -119,11 +119,11 @@ impl Scanner {
     }
 
     fn current_char(&self) -> Option<char> {
-        self.source_chars.get(self.current_index).map(|ch| *ch)
+        self.source_chars.get(self.current_index).copied()
     }
 
     fn next_char(&self) -> Option<char> {
-        self.source_chars.get(self.current_index + 1).map(|ch| *ch)
+        self.source_chars.get(self.current_index + 1).copied()
     }
 
     fn handle_keyword_or_identifier(&mut self) {
@@ -174,11 +174,10 @@ impl Scanner {
         if self.is_at_end() {
             self.tokens.push(Token::new(
                 TokenType::ErrorToken,
-                &the_string,
+                the_string,
                 None,
                 self.line,
             ));
-            return;
         } else {
             self.tokens.push(Token::new(
                 TokenType::String,
@@ -226,7 +225,7 @@ impl Scanner {
         self.tokens.push(Token::new(
             TokenType::Number,
             numstr,
-            num.ok().map(|the_num| Literal::Double(the_num)),
+            num.ok().map(Literal::Double),
             self.line,
         ));
     }

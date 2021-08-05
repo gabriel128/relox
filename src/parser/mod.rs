@@ -2,8 +2,8 @@ use crate::errors::ErrorKind;
 use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
-use crate::token::token::Literal as TokenLiteral;
-use crate::token::token::Token;
+use crate::token::Literal as TokenLiteral;
+use crate::token::Token;
 use crate::token::token_type::TokenType;
 use crate::Result;
 
@@ -104,7 +104,7 @@ impl Parser {
 
     // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Box<Expr>> {
-        if let Some(ref token) = self.tokens.get(self.cursor) {
+        if let Some(token) = self.tokens.get(self.cursor) {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
                     self.cursor += 1;

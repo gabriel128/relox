@@ -2,8 +2,9 @@ use super::chunk::{Chunk, OpCode};
 use super::value::Value;
 use crate::errors::ErrorKind::ParserError;
 use crate::errors::{ErrorKind::Fatal, ReloxError};
-use crate::token::token::Literal;
-use crate::token::{token::Token, token_type::TokenType};
+use crate::token::Literal;
+use crate::token::Token;
+use crate::token::token_type::TokenType;
 use crate::Result;
 
 #[derive(Debug)]
@@ -95,12 +96,12 @@ impl Compiler {
 
         if self.had_error {
             let current_token = self.current_token()?;
-            return ReloxError::new_compile_error(
+            ReloxError::new_compile_error(
                 current_token.line,
                 "Compilation Error".to_string(),
                 None,
                 ParserError,
-            );
+            )
         } else {
             res
         }
@@ -300,7 +301,7 @@ impl Compiler {
 #[cfg(test)]
 mod tests {
     use crate::bytecode::vm::Vm;
-    use crate::scanner::scanner::Scanner;
+    use crate::scanner::Scanner;
 
     use super::*;
 

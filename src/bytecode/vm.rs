@@ -36,7 +36,7 @@ impl<T: Default + Copy> VmStack<T> {
     }
 
     pub fn pop(&mut self) -> Result<T> {
-        if self.stack_top <= 0 {
+        if self.stack_top == 0 {
             return ReloxError::new_fatal_error(
                 "Tried to pop invalid index from instruction stack".to_string(),
             );
@@ -82,17 +82,17 @@ impl Vm {
                 if self.debug_mode {
                     println!("== Current stack ==");
                     println!("{:?}", &self.value_stack.stack_slice(0, self.ip + 1));
-                    self.chunk.dissasemble_instruction(&instruction, 0, &mut 0);
+                    self.chunk.dissasemble_instruction(instruction, 0, &mut 0);
                 }
 
                 match instruction {
                     OpCode::Constant { constant_offset } => {
-                        let the_constant = self
-                            .chunk
-                            .read_constant(*constant_offset)
-                            .ok_or::<ReloxError>(ReloxError::new_unwrapped_fatal_error(
-                                "Constant not set".to_string(),
-                            ))?;
+                        let the_constant =
+                            self.chunk.read_constant(*constant_offset).ok_or_else(|| {
+                                ReloxError::new_unwrapped_fatal_error(
+                                    "Constant not set".to_string(),
+                                )
+                            })?;
                         self.value_stack.push(*the_constant)?;
                     }
                     OpCode::Negate => {

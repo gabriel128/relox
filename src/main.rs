@@ -6,17 +6,18 @@ use bytecode::compiler::Compiler;
 use bytecode::vm::Vm;
 // use crate::eval::interpreted_eval::Eval;
 // use crate::parser::parser::Parser;
-use scanner::scanner::Scanner;
+use crate::scanner::Scanner;
 use std::env;
 use std::io;
 use std::process;
-mod bytecode;
-mod errors;
-mod eval;
+mod token;
+mod scanner;
 mod grammar;
 mod parser;
-mod scanner;
-mod token;
+mod eval;
+mod bytecode;
+mod errors;
+
 
 pub type Result<T, E = errors::ReloxError> = std::result::Result<T, E>;
 
@@ -59,7 +60,7 @@ fn run_repl() -> Result<()> {
         } else {
             match run(&buffer) {
                 Ok(eval_result) => println!("{}", eval_result),
-                Err(error) => eprintln!("{}", error),
+                Err(error) => eprintln!("{}", error)
             };
         }
     }
