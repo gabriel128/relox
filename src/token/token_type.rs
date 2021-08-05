@@ -56,7 +56,7 @@ pub enum TokenType {
 
     Skip,
     NewLine,
-    ErrorToken
+    ErrorToken,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,7 +65,7 @@ pub enum TokenKind {
     SingleChar,
     SlashOrComment,
     NoOp,
-    Rest
+    Rest,
 }
 
 impl TokenType {
@@ -83,7 +83,7 @@ impl TokenType {
         char_to_enum.insert('*', (TokenType::Star, TokenKind::SingleChar));
 
         // One or More Chars
-        // 
+        //
         char_to_enum.insert('!', (TokenType::Bang, TokenKind::OneOrTwoChar));
         char_to_enum.insert('=', (TokenType::Equal, TokenKind::OneOrTwoChar));
         char_to_enum.insert('<', (TokenType::Less, TokenKind::OneOrTwoChar));
@@ -114,10 +114,14 @@ impl TokenType {
         char_to_enum.insert('8', (TokenType::Number, TokenKind::Rest));
         char_to_enum.insert('9', (TokenType::Number, TokenKind::Rest));
 
-        char_to_enum.get(&a_char).map (|the_type| the_type.clone())
+        char_to_enum.get(&a_char).map(|the_type| the_type.clone())
     }
 
-    pub fn from_two_chars(first_char: char, second_char: char, fallback_token_type: TokenType) -> (TokenType, String, usize) {
+    pub fn from_two_chars(
+        first_char: char,
+        second_char: char,
+        fallback_token_type: TokenType,
+    ) -> (TokenType, String, usize) {
         let mut str_to_enum = HashMap::<String, TokenType>::new();
         str_to_enum.insert("!=".to_string(), TokenType::BangEqual);
         str_to_enum.insert("==".to_string(), TokenType::EqualEqual);
@@ -128,7 +132,6 @@ impl TokenType {
         as_str.push(first_char);
         as_str.push(second_char);
 
-
         if let Some(token_type) = str_to_enum.get(&as_str) {
             (*token_type, as_str, 2)
         } else {
@@ -138,7 +141,7 @@ impl TokenType {
 
     pub fn keyword(a_string: &str) -> Option<TokenType> {
         let mut keywords = HashMap::<String, TokenType>::new();
-        keywords.insert(String::from("and"),TokenType::And);
+        keywords.insert(String::from("and"), TokenType::And);
         keywords.insert(String::from("class"), TokenType::Class);
         keywords.insert(String::from("else"), TokenType::Else);
         keywords.insert(String::from("false"), TokenType::False);
@@ -155,7 +158,7 @@ impl TokenType {
         keywords.insert(String::from("var"), TokenType::Var);
         keywords.insert(String::from("while"), TokenType::While);
 
-        keywords.get(a_string).map (|the_type| the_type.clone())
+        keywords.get(a_string).map(|the_type| the_type.clone())
     }
 
     pub fn is_comment(first_char: char, second_char: char) -> bool {

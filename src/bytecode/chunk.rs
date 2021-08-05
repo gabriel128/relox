@@ -1,5 +1,5 @@
+use crate::{errors::ReloxError, Result};
 use std::usize;
-use crate::{Result, errors::ReloxError};
 
 use super::value::Value;
 
@@ -15,7 +15,7 @@ pub enum OpCode {
     Multiply,
     Nil,
     True,
-    False
+    False,
 }
 const CONSTANT_POOL_MAX: usize = 255;
 

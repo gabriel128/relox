@@ -1,10 +1,6 @@
 use crate::{
     bytecode::chunk::OpCode,
-    errors::{
-        ErrorKind::StackOverFlow,
-        ErrorKind::VmError,
-        ReloxError,
-    },
+    errors::{ErrorKind::StackOverFlow, ErrorKind::VmError, ReloxError},
 };
 
 use super::{chunk::Chunk, value::Value};
@@ -91,10 +87,12 @@ impl Vm {
 
                 match instruction {
                     OpCode::Constant { constant_offset } => {
-                        let the_constant =
-                            self.chunk.read_constant(*constant_offset).ok_or::<ReloxError>(
-                                ReloxError::new_unwrapped_fatal_error("Constant not set".to_string())
-                            )?;
+                        let the_constant = self
+                            .chunk
+                            .read_constant(*constant_offset)
+                            .ok_or::<ReloxError>(ReloxError::new_unwrapped_fatal_error(
+                                "Constant not set".to_string(),
+                            ))?;
                         self.value_stack.push(*the_constant)?;
                     }
                     OpCode::Negate => {
@@ -118,7 +116,7 @@ impl Vm {
                     OpCode::Return => {
                         let value = self.value_stack.pop()?;
                         return Ok(value);
-                    },
+                    }
                     OpCode::Nil => self.value_stack.push(Value::Nil)?,
                     OpCode::True => self.value_stack.push(Value::Bool(true))?,
                     OpCode::False => self.value_stack.push(Value::Bool(false))?,
@@ -142,11 +140,7 @@ impl Vm {
             Ok(value) => self.value_stack.push(value),
             Err(error_msg) => {
                 let line_num = self.chunk.line_at(self.ip - 1);
-                ReloxError::new_runtime_error(
-                    line_num as usize,
-                    error_msg.to_string(),
-                    VmError,
-                )
+                ReloxError::new_runtime_error(line_num as usize, error_msg.to_string(), VmError)
             }
         }
     }

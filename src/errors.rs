@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::Result;
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
@@ -9,7 +9,7 @@ pub enum ErrorKind {
     VmError,
     EvalError,
     Fatal,
-    IO
+    IO,
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub enum ReloxError {
     CompilationError(CompilationError),
     RuntimeError(RuntimeError),
     FatalError(FatalError),
-    IOError(std::io::Error)
+    IOError(std::io::Error),
 }
 
 impl From<std::io::Error> for ReloxError {
@@ -53,20 +53,16 @@ impl ReloxError {
         where_it_was: Option<String>,
         kind: ErrorKind,
     ) -> Result<T> {
-        Err(
-            Self::CompilationError(CompilationError {
-                line,
-                message,
-                where_it_was,
-                kind,
-            })
-        )
+        Err(Self::CompilationError(CompilationError {
+            line,
+            message,
+            where_it_was,
+            kind,
+        }))
     }
 
     pub fn new_fatal_error<T>(message: String) -> Result<T> {
-        Err(
-            ReloxError::new_unwrapped_fatal_error(message)
-        )
+        Err(ReloxError::new_unwrapped_fatal_error(message))
     }
 
     pub fn new_unwrapped_fatal_error(message: String) -> Self {
@@ -74,13 +70,11 @@ impl ReloxError {
     }
 
     pub fn new_runtime_error<T>(line: usize, message: String, kind: ErrorKind) -> Result<T> {
-        Err(
-            Self::RuntimeError(RuntimeError {
-                line,
-                message,
-                kind,
-            })
-        )
+        Err(Self::RuntimeError(RuntimeError {
+            line,
+            message,
+            kind,
+        }))
     }
 
     pub fn kind(&self) -> ErrorKind {

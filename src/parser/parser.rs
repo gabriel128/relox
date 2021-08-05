@@ -24,7 +24,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens:Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         // println!("The tokens are {:?}", tokens);
         Self { tokens, cursor: 0 }
     }
@@ -34,13 +34,9 @@ impl Parser {
         Ok(*expr)
     }
 
-    fn one_or_many<F>(
-        &mut self,
-        token_types: Vec<TokenType>,
-        mut f: F,
-    ) -> Result<Box<Expr>>
+    fn one_or_many<F>(&mut self, token_types: Vec<TokenType>, mut f: F) -> Result<Box<Expr>>
     where
-        F: FnMut(&mut Self) -> Result<Box<Expr>>
+        F: FnMut(&mut Self) -> Result<Box<Expr>>,
     {
         let left_expr = f(self)?;
         let mut left_expr = left_expr;
@@ -144,28 +140,21 @@ impl Parser {
                     )?;
                     Ok(Box::new(Expr::Grouping(expr)))
                 }
-                (TokenType::ErrorToken, _) => {
-                    ReloxError::new_compile_error(
-                        token.line,
-                        format!("Unrecognized Character {:?}", token.lexeme),
-                        None,
-                        ErrorKind::ParserError
-                    )
-                },
-                _token => {
-                    ReloxError::new_compile_error(
-                        token.line,
-                        format!("Unparsable Expression {:?}", token.lexeme),
-                        None,
-                        ErrorKind::ParserError
-                    )
-
-                }
+                (TokenType::ErrorToken, _) => ReloxError::new_compile_error(
+                    token.line,
+                    format!("Unrecognized Character {:?}", token.lexeme),
+                    None,
+                    ErrorKind::ParserError,
+                ),
+                _token => ReloxError::new_compile_error(
+                    token.line,
+                    format!("Unparsable Expression {:?}", token.lexeme),
+                    None,
+                    ErrorKind::ParserError,
+                ),
             }
         } else {
-            ReloxError::new_fatal_error(
-              "Parser Error: out of bounds".to_string()
-            )
+            ReloxError::new_fatal_error("Parser Error: out of bounds".to_string())
         }
     }
 
@@ -191,9 +180,7 @@ impl Parser {
                 )
             }
         } else {
-            ReloxError::new_fatal_error(
-                "Almost SEGFAULT".to_string()
-            )
+            ReloxError::new_fatal_error("Almost SEGFAULT".to_string())
         }
     }
 }
@@ -201,7 +188,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Scanner, errors::CompilationError};
+    use crate::{errors::CompilationError, Scanner};
 
     #[test]
     fn test_parsing_random0() {
@@ -257,7 +244,9 @@ mod tests {
         let tokens = scanner.scan_tokens().unwrap();
         let mut parser = Parser::new(tokens);
 
-        if let ReloxError::CompilationError(CompilationError { message, kind , ..}) = parser.parse().expect_err("should've been an error") {
+        if let ReloxError::CompilationError(CompilationError { message, kind, .. }) =
+            parser.parse().expect_err("should've been an error")
+        {
             assert_eq!(ErrorKind::ParserError, kind);
             assert_eq!("There should be a ')' after expression, duh.", message);
         } else {
