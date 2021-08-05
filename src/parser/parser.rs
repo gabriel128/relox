@@ -145,29 +145,27 @@ impl Parser {
                     Ok(Box::new(Expr::Grouping(expr)))
                 }
                 (TokenType::ErrorToken, _) => {
-                    let error = ReloxError::new_compile_error(
+                    ReloxError::new_compile_error(
                         token.line,
                         format!("Unrecognized Character {:?}", token.lexeme),
                         None,
                         ErrorKind::ParserError
-                    );
-                    Err(error)
+                    )
                 },
                 _token => {
-                    let error = ReloxError::new_compile_error(
+                    ReloxError::new_compile_error(
                         token.line,
                         format!("Unparsable Expression {:?}", token.lexeme),
                         None,
                         ErrorKind::ParserError
-                    );
-                    Err(error)
+                    )
+
                 }
             }
         } else {
-            let error = ReloxError::new_fatal_error(
+            ReloxError::new_fatal_error(
               "Parser Error: out of bounds".to_string()
-            );
-            Err(error)
+            )
         }
     }
 
@@ -177,28 +175,25 @@ impl Parser {
                 self.cursor += 1;
                 Ok(())
             } else if current_token.token_type == TokenType::Eof {
-                let error = ReloxError::new_compile_error(
+                ReloxError::new_compile_error(
                     current_token.line,
                     message.to_string(),
                     Some(" at the end".to_string()),
                     ErrorKind::ParserError,
-                );
-                Err(error)
+                )
             } else {
                 let where_at = format!(" at '{}'", current_token.lexeme);
-                let error = ReloxError::new_compile_error(
+                ReloxError::new_compile_error(
                     current_token.line,
                     "".to_string(),
                     Some(where_at),
                     ErrorKind::ParserError,
-                );
-                Err(error)
+                )
             }
         } else {
-            let error = ReloxError::new_fatal_error(
+            ReloxError::new_fatal_error(
                 "Almost SEGFAULT".to_string()
-            );
-            Err(error)
+            )
         }
     }
 }

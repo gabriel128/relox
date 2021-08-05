@@ -1,6 +1,6 @@
 use super::chunk::{Chunk, OpCode};
 use super::value::Value;
-use crate::errors::ErrorKind::{CompileError, ParserError};
+use crate::errors::ErrorKind::ParserError;
 use crate::errors::{ErrorKind::Fatal, ReloxError};
 use crate::token::token::Literal;
 use crate::token::{token::Token, token_type::TokenType};
@@ -75,12 +75,12 @@ impl Compiler {
 
     pub fn compile(mut self) -> Result<Chunk> {
         if self.had_error {
-            return Err(ReloxError::new_compile_error(
+            return ReloxError::new_compile_error(
                 0,
                 "Error on compilation".to_string(),
                 None,
                 ParserError,
-            ));
+            );
         }
 
         self.parse()?;
@@ -95,9 +95,12 @@ impl Compiler {
 
         if self.had_error {
             let current_token = self.current_token()?;
-            return Err(
-                ReloxError::new_compile_error(current_token.line, "Compilation Error".to_string(), None, CompileError)
-            )
+            return ReloxError::new_compile_error(
+                current_token.line,
+                "Compilation Error".to_string(),
+                None,
+                ParserError,
+            );
         } else {
             res
         }
@@ -147,7 +150,7 @@ impl Compiler {
     fn parse_with_precendece(&mut self, precedence: u8) -> Result<()> {
         self.advance()?;
 
-        dbg!(self.prev_token()?, self.current_token()?, self.cursor);
+        // dbg!(self.prev_token()?, self.current_token()?, self.cursor);
 
         self.parse_prefix_for_type(self.prev_token_type()?)?;
 
@@ -171,7 +174,7 @@ impl Compiler {
             TokenType::Nil => self.emit_byte(OpCode::Nil),
             TokenType::True => self.emit_byte(OpCode::True),
             TokenType::False => self.emit_byte(OpCode::False),
-            _ => Ok(())
+            _ => Ok(()),
         }
     }
 
@@ -197,10 +200,10 @@ impl Compiler {
             TokenType::Nil => self.literal(token_type),
             TokenType::True => self.literal(token_type),
             TokenType::False => self.literal(token_type),
-            unreq_token_type => Err(ReloxError::new_fatal_error(format!(
+            unreq_token_type => ReloxError::new_fatal_error(format!(
                 "Prefix unimplemented for {:?}",
                 unreq_token_type
-            ))),
+            )),
         }
     }
 
@@ -210,10 +213,10 @@ impl Compiler {
             TokenType::Minus => self.binary(token_type),
             TokenType::Plus => self.binary(token_type),
             TokenType::Star => self.binary(token_type),
-            unreq_token_type => Err(ReloxError::new_fatal_error(format!(
+            unreq_token_type => ReloxError::new_fatal_error(format!(
                 "Infix unimplemented for {:?}",
                 unreq_token_type
-            ))),
+            )),
         }
     }
 
@@ -226,12 +229,12 @@ impl Compiler {
                 self.chunk.add_constant(Value::Number(value), token_line)?;
                 Ok(())
             }
-            _ => Err(ReloxError::new_compile_error(
+            _ => ReloxError::new_compile_error(
                 prev_token.line,
                 "Error on compilation".to_string(),
                 None,
                 Fatal,
-            )),
+            ),
         }
     }
 
@@ -266,11 +269,11 @@ impl Compiler {
     }
 
     fn current_token(&self) -> Result<&Token> {
-        self.tokens
-            .get(self.cursor)
-            .ok_or(ReloxError::new_fatal_error(
-                "Parser tried to fetch an unexistent token".to_string(),
-            ))
+        if let Some(token) = self.tokens.get(self.cursor) {
+            Ok(token)
+        } else {
+            ReloxError::new_fatal_error("Parser tried to fetch an unexistent token".to_string())
+        }
     }
 
     fn current_token_type(&self) -> Result<TokenType> {
@@ -286,11 +289,11 @@ impl Compiler {
     }
 
     fn prev_token_for(&self, cursor: usize) -> Result<&Token> {
-        self.tokens
-            .get(cursor - 1)
-            .ok_or(ReloxError::new_fatal_error(
-                "Parser tried to fetch an unexistent token".to_string(),
-            ))
+        if let Some(token) = self.tokens.get(cursor - 1) {
+            Ok(token)
+        } else {
+            ReloxError::new_fatal_error("Parser tried to fetch an unexistent token".to_string())
+        }
     }
 }
 
@@ -361,7 +364,6 @@ mod tests {
     #[test]
     fn test_boolean_grouping() {
         let tokens = Scanner::run_with("(true)".to_string()).unwrap();
-        dbg!(&tokens);
         let chunk = Compiler::run_with(tokens).unwrap();
         let val = Vm::run_with(chunk, false).unwrap();
         assert_eq!(val, Value::Bool(true));

@@ -61,9 +61,7 @@ impl Chunk {
 
     pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<()> {
         if self.constant_pool.len() >= CONSTANT_POOL_MAX {
-            return Err(
-                ReloxError::new_fatal_error("Constant Pool max reached".to_string())
-            );
+            return ReloxError::new_fatal_error("Constant Pool max reached".to_string());
         }
 
         self.constant_pool.push(constant);

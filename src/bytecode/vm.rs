@@ -1,7 +1,8 @@
 use crate::{
     bytecode::chunk::OpCode,
     errors::{
-        ErrorKind::{RuntimeError, StackOverFlow},
+        ErrorKind::StackOverFlow,
+        ErrorKind::VmError,
         ReloxError,
     },
 };
@@ -27,11 +28,11 @@ impl<T: Default + Copy> VmStack<T> {
 
     pub fn push(&mut self, val: T) -> Result<()> {
         if self.stack_top >= 256 {
-            return Err(ReloxError::new_runtime_error(
+            return ReloxError::new_runtime_error(
                 0,
                 "StackOverflow bro".to_string(),
                 StackOverFlow,
-            ));
+            );
         }
         self.stack[self.stack_top] = val;
         self.stack_top += 1;
@@ -40,9 +41,9 @@ impl<T: Default + Copy> VmStack<T> {
 
     pub fn pop(&mut self) -> Result<T> {
         if self.stack_top <= 0 {
-            return Err(ReloxError::new_fatal_error(
+            return ReloxError::new_fatal_error(
                 "Tried to pop invalid index from instruction stack".to_string(),
-            ));
+            );
         }
 
         self.stack_top -= 1;
@@ -91,9 +92,9 @@ impl Vm {
                 match instruction {
                     OpCode::Constant { constant_offset } => {
                         let the_constant =
-                            self.chunk.read_constant(*constant_offset).ok_or_else(|| {
-                                ReloxError::new_fatal_error("Constant not set".to_string())
-                            })?;
+                            self.chunk.read_constant(*constant_offset).ok_or::<ReloxError>(
+                                ReloxError::new_unwrapped_fatal_error("Constant not set".to_string())
+                            )?;
                         self.value_stack.push(*the_constant)?;
                     }
                     OpCode::Negate => {
@@ -102,11 +103,11 @@ impl Vm {
                             Ok(neg_value) => self.value_stack.push(neg_value)?,
                             Err(error_msg) => {
                                 let line_num = self.chunk.line_at(self.ip - 1);
-                                return Err(ReloxError::new_runtime_error(
+                                return ReloxError::new_runtime_error(
                                     line_num as usize,
                                     error_msg.to_string(),
-                                    RuntimeError,
-                                ));
+                                    VmError,
+                                );
                             }
                         };
                     }
@@ -123,10 +124,10 @@ impl Vm {
                     OpCode::False => self.value_stack.push(Value::Bool(false))?,
                 };
             } else {
-                return Err(ReloxError::new_fatal_error(format!(
+                return ReloxError::new_fatal_error(format!(
                     "Read wrong instruction, stacktrace: {:?}",
                     &self.value_stack.stack_slice(0, self.ip + 1)
-                )));
+                ));
             }
         }
     }
@@ -141,11 +142,11 @@ impl Vm {
             Ok(value) => self.value_stack.push(value),
             Err(error_msg) => {
                 let line_num = self.chunk.line_at(self.ip - 1);
-                Err(ReloxError::new_runtime_error(
+                ReloxError::new_runtime_error(
                     line_num as usize,
                     error_msg.to_string(),
-                    RuntimeError,
-                ))
+                    VmError,
+                )
             }
         }
     }

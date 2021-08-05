@@ -1,8 +1,8 @@
-use crate::errors::{ReloxError, ErrorKind::LexError};
-use crate::Result;
+use crate::errors::{ErrorKind::LexError, ReloxError};
 use crate::token::token::{Literal, Token};
 use crate::token::token_type::TokenKind;
 use crate::token::token_type::TokenType;
+use crate::Result;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -53,18 +53,19 @@ impl Scanner {
             match TokenType::from_single_char(source_char) {
                 Some((token_type, TokenKind::SingleChar)) => self.add_token(token_type),
                 Some((token_type, TokenKind::OneOrTwoChar)) => self.handle_one_or_two(token_type),
-                Some((token_type, TokenKind::SlashOrComment)) => self.handle_slash_or_comment(token_type),
+                Some((token_type, TokenKind::SlashOrComment)) => {
+                    self.handle_slash_or_comment(token_type)
+                }
                 Some((TokenType::String, _)) => self.handle_string(),
                 Some((TokenType::Skip, _)) => {}
                 Some((TokenType::NewLine, _)) => self.line += 1,
                 Some((TokenType::Number, _)) => self.handle_number(),
-                Some(token_type) => {
-                        return Err(ReloxError::new_compile_error(
-                            self.line,
-                            format!("Unexpected token {:?}", token_type),
-                            None,
-                            LexError));
-                },
+                Some(token_type) => ReloxError::new_compile_error(
+                    self.line,
+                    format!("Unexpected token {:?}", token_type),
+                    None,
+                    LexError,
+                )?,
                 None => {
                     if source_char.is_ascii_alphabetic() {
                         self.handle_keyword_or_identifier();
@@ -76,7 +77,8 @@ impl Scanner {
 
             self.advance();
         }
-        self.tokens.push(Token::new(TokenType::Eof, "", None, self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "", None, self.line));
         Ok(())
     }
 
@@ -134,7 +136,7 @@ impl Scanner {
             }
         }
 
-        let lexeme = self.substring_source(self.start, self.current_index+1);
+        let lexeme = self.substring_source(self.start, self.current_index + 1);
 
         if let Some(keyword_type) = TokenType::keyword(&lexeme) {
             self.add_token_with_lexeme(keyword_type, &lexeme);
@@ -188,7 +190,7 @@ impl Scanner {
     }
 
     fn add_error_token(&mut self) {
-        if let Some(source_char) =  self.current_char() {
+        if let Some(source_char) = self.current_char() {
             self.tokens.push(Token::new(
                 TokenType::ErrorToken,
                 &source_char.to_string(),

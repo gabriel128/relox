@@ -27,7 +27,7 @@ impl std::ops::Add for Value {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs + rhs)),
-            _ => Err(ReloxError::new_fatal_error("Tried to add oranges with apples".to_string()))
+            _ => ReloxError::new_fatal_error("Tried to add oranges with apples".to_string())
         }
     }
 }
@@ -38,7 +38,7 @@ impl std::ops::Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs - rhs)),
-            _ => Err(ReloxError::new_fatal_error("Tried to substract oranges with apples".to_string()))
+            _ => ReloxError::new_fatal_error("Tried to substract oranges with apples".to_string())
         }
     }
 }
@@ -49,7 +49,7 @@ impl std::ops::Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs * rhs)),
-            _ => Err(ReloxError::new_fatal_error("Tried to multiply oranges with apples".to_string()))
+            _ => ReloxError::new_fatal_error("Tried to multiply oranges with apples".to_string())
         }
     }
 }
@@ -60,7 +60,7 @@ impl std::ops::Div for Value {
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Number(lhs), Self::Number(rhs)) => Ok(Self::Number(lhs / rhs)),
-            _ => Err(ReloxError::new_fatal_error("Tried to divide oranges with apples".to_string()))
+            _ => ReloxError::new_fatal_error("Tried to divide oranges with apples".to_string())
         }
     }
 }
@@ -71,7 +71,7 @@ impl std::ops::Neg for Value {
     fn neg(self) -> Self::Output {
         match self {
             Self::Number(val) => Ok(Self::Number(-val)),
-            _ => Err(ReloxError::new_fatal_error("Tried to negate unegable(?)".to_string()))
+            _ => ReloxError::new_fatal_error("Tried to negate unegable(?)".to_string())
         }
     }
 }

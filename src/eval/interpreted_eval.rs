@@ -138,13 +138,12 @@ fn handle_binary(
 
 }
 
-fn build_eval_error(line: usize, message: String ) -> Result<EvalResult>{
-    let error = ReloxError::new_runtime_error(
+fn build_eval_error(line: usize, message: String ) -> Result<EvalResult> {
+    ReloxError::new_runtime_error(
         line,
         message,
         ErrorKind::EvalError,
-    );
-    Err(error)
+    )
 }
 
 #[cfg(test)]
