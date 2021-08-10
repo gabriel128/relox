@@ -120,6 +120,18 @@ impl Vm {
                     OpCode::Nil => self.value_stack.push(Value::Nil)?,
                     OpCode::True => self.value_stack.push(Value::Bool(true))?,
                     OpCode::False => self.value_stack.push(Value::Bool(false))?,
+                    OpCode::Not => {
+                        if let Ok(Value::Bool(value)) = self.value_stack.pop() {
+                            self.value_stack.push(Value::Bool(!value))?;
+                        } else {
+                            let line_num = self.chunk.line_at(self.ip - 1);
+                            return ReloxError::new_runtime_error(
+                                line_num as usize,
+                                "Invalid type, you can only negate booleans".to_string(),
+                                VmError,
+                            );
+                        }
+                    }
                 };
             } else {
                 return ReloxError::new_fatal_error(format!(
@@ -149,6 +161,7 @@ impl Vm {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_vm_stack() {
@@ -226,5 +239,36 @@ mod tests {
         chunk.write_bytecode(OpCode::Return, 0);
         let mut vm = Vm::new(chunk, false);
         assert_eq!(vm.run().unwrap(), Value::Number(7.0));
+    }
+
+    #[test]
+    fn test_not() {
+        let mut chunk = Chunk::new();
+        chunk.write_bytecode(OpCode::True, 0);
+        chunk.write_bytecode(OpCode::Not, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), Value::Bool(false));
+    }
+
+    #[test]
+    fn test_not_not() {
+        let mut chunk = Chunk::new();
+        chunk.write_bytecode(OpCode::True, 0);
+        chunk.write_bytecode(OpCode::Not, 0);
+        chunk.write_bytecode(OpCode::Not, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().unwrap(), Value::Bool(true));
+    }
+
+    #[test]
+    fn test_noting_a_not_boolean() {
+        let mut chunk = Chunk::new();
+        chunk.add_constant(Value::Number(3.0), 0).unwrap();
+        chunk.write_bytecode(OpCode::Not, 0);
+        chunk.write_bytecode(OpCode::Return, 0);
+        let mut vm = Vm::new(chunk, false);
+        assert_eq!(vm.run().is_err(), true);
     }
 }

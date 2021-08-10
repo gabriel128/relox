@@ -1,7 +1,7 @@
 use crate::errors::{ErrorKind::LexError, ReloxError};
-use crate::token::{Literal, Token};
 use crate::token::token_type::TokenKind;
 use crate::token::token_type::TokenType;
+use crate::token::{Literal, Token};
 use crate::Result;
 
 #[derive(Debug)]

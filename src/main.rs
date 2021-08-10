@@ -10,14 +10,13 @@ use crate::scanner::Scanner;
 use std::env;
 use std::io;
 use std::process;
-mod token;
-mod scanner;
-mod grammar;
-mod parser;
-mod eval;
 mod bytecode;
 mod errors;
-
+mod eval;
+mod grammar;
+mod parser;
+mod scanner;
+mod token;
 
 pub type Result<T, E = errors::ReloxError> = std::result::Result<T, E>;
 
@@ -60,7 +59,7 @@ fn run_repl() -> Result<()> {
         } else {
             match run(&buffer) {
                 Ok(eval_result) => println!("{}", eval_result),
-                Err(error) => eprintln!("{}", error)
+                Err(error) => eprintln!("{}", error),
             };
         }
     }

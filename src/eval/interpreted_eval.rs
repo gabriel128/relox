@@ -2,8 +2,8 @@ use crate::errors::ErrorKind;
 use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
-use crate::token::Token;
 use crate::token::token_type::TokenType;
+use crate::token::Token;
 use crate::Result;
 use std::fmt;
 

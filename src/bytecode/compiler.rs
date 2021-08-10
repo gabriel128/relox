@@ -2,9 +2,9 @@ use super::chunk::{Chunk, OpCode};
 use super::value::Value;
 use crate::errors::ErrorKind::ParserError;
 use crate::errors::{ErrorKind::Fatal, ReloxError};
+use crate::token::token_type::TokenType;
 use crate::token::Literal;
 use crate::token::Token;
-use crate::token::token_type::TokenType;
 use crate::Result;
 
 #[derive(Debug)]
@@ -87,6 +87,7 @@ impl Compiler {
         self.parse()?;
 
         self.emit_return()?;
+
         Ok(self.chunk)
     }
 
@@ -371,16 +372,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_syntax_errors() {
         let tokens = Scanner::run_with("##$".to_string()).unwrap();
-        Compiler::run_with(tokens).unwrap();
+        assert!(Compiler::run_with(tokens).is_err());
     }
 
     #[test]
-    #[should_panic]
     fn test_syntax_errors2() {
         let tokens = Scanner::run_with("((true)".to_string()).unwrap();
-        Compiler::run_with(tokens).unwrap();
+        assert!(Compiler::run_with(tokens).is_err());
     }
 }

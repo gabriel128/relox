@@ -3,7 +3,7 @@ use std::usize;
 
 use super::value::Value;
 
-/// Op Codes
+/// Bytecode Op Codes
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OpCode {
     Constant { constant_offset: u8 },
@@ -16,6 +16,7 @@ pub enum OpCode {
     Nil,
     True,
     False,
+    Not,
 }
 const CONSTANT_POOL_MAX: usize = 255;
 
@@ -103,6 +104,7 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
     use std::mem::size_of_val;
 
     use super::*;
@@ -115,13 +117,15 @@ mod tests {
         chunk.write_bytecode(OpCode::Add, 22);
         chunk.write_bytecode(OpCode::Return, 23);
 
-        println!("Size of bool {:?}", size_of_val(&Value::Number(3.3)));
-        println!("Size of Value {:?}", size_of_val(&Value::Number(3.3)));
-        println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
-        println!("Chunk size {:?}", size_of_val(&chunk));
-        println!("Chunk instr code size {:?}", size_of_val(&chunk.code));
-        println!("Constant pool size {:?}", size_of_val(&chunk.constant_pool));
-        println!("Chink lines size {:?}", size_of_val(&chunk.lines));
+        assert_eq!(24, size_of_val(&chunk.code));
+        assert_eq!(24, size_of_val(&chunk.constant_pool));
+        assert_eq!(24, size_of_val(&chunk.lines));
+        assert_eq!(72, size_of_val(&chunk));
+        assert_eq!(8, size_of_val(&Value::Bool(true)));
+        assert_eq!(8, size_of_val(&Value::Number(3.3)));
+        assert_eq!(2, size_of_val(&OpCode::Return));
+        assert_eq!(2, size_of_val(&OpCode::True));
+        assert_eq!(8, size_of_val(&Value::Number(3.3)));
         // chunk.dissasemble();
     }
 }
