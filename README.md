@@ -27,10 +27,12 @@ though. Will see...
 
 - [x] Scanner
 - [x] Rudimentary VM
-- [ ] Single Pass Compiler - Pratt Parser (WIP)
-- [ ] Single Pass Compiler - Compiler (WIP)
+- [X] Single Pass Compiler - Pratt Parser 
+- [X] Single Pass Compiler - Compiler 
 - [ ] Handle Variables
 - [ ] Functions
 - [ ] Maybe a garbage collector, I'm not sure if it will necessary with rust, yet.
+- [ ] Jit Compiler
+- [ ] Own String and Float low level implementation - Maybe?
 - [ ] More cool stuff 
 
