@@ -1,7 +1,9 @@
+use crate::{errors::ReloxError, Result};
 use std::usize;
-use crate::{Result, errors::ReloxError};
 
-/// Op Codes
+use super::value::Value;
+
+/// Bytecode Op Codes
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum OpCode {
     Constant { constant_offset: u8 },
@@ -11,10 +13,13 @@ pub enum OpCode {
     Substract,
     Divide,
     Multiply,
+    Nil,
+    True,
+    False,
+    Not,
 }
 const CONSTANT_POOL_MAX: usize = 255;
 
-pub type Value = f64;
 /// Chunk
 ///
 /// Represents a chunk of Opcodes. It can be thought as an array of bytes
@@ -42,6 +47,10 @@ impl Chunk {
         self.code.get(index)
     }
 
+    pub fn line_at(&self, index: usize) -> u16 {
+        *self.lines.get(index).unwrap_or(&0)
+    }
+
     pub fn read_constant(&self, index: u8) -> Option<&Value> {
         self.constant_pool.get(index as usize)
     }
@@ -53,9 +62,7 @@ impl Chunk {
 
     pub fn add_constant(&mut self, constant: Value, line: u16) -> Result<()> {
         if self.constant_pool.len() >= CONSTANT_POOL_MAX {
-            return Err(
-                ReloxError::new_fatal_error("Constant Pool max reached".to_string())
-            );
+            return ReloxError::new_fatal_error("Constant Pool max reached".to_string());
         }
 
         self.constant_pool.push(constant);
@@ -71,7 +78,7 @@ impl Chunk {
     pub fn dissasemble(&self) {
         println!("== Dissasembling Chunk ==");
         println!("byte_offset   lines   op    data");
-        println!("");
+        println!();
 
         let mut byte_offset = 0;
 
@@ -85,12 +92,7 @@ impl Chunk {
             OpCode::Constant { constant_offset } => {
                 format!("{:?}", self.constant_pool[*constant_offset as usize])
             }
-            OpCode::Return
-            | OpCode::Negate
-            | OpCode::Add
-            | OpCode::Substract
-            | OpCode::Divide
-            | OpCode::Multiply => "".to_string(),
+            _ => "".to_string(),
         };
         println!(
             "{:?}             {:?}      {:?}    {}",
@@ -102,24 +104,28 @@ impl Chunk {
 
 #[cfg(test)]
 mod tests {
-    // use std::mem::size_of_val;
+    use pretty_assertions::assert_eq;
+    use std::mem::size_of_val;
 
-    // use super::*;
+    use super::*;
 
     #[test]
     fn test_chunk() {
-        // let mut vec = Vec::<OpCode>::new();
+        let mut chunk = Chunk::new();
+        chunk.add_constant(Value::Number(3.0), 22).unwrap();
+        chunk.add_constant(Value::Number(4.0), 22).unwrap();
+        chunk.write_bytecode(OpCode::Add, 22);
+        chunk.write_bytecode(OpCode::Return, 23);
 
-        // println!("Empty Vec {:?}", size_of_val(&vec));
-        // println!("Size of OpCode {:?}", size_of_val(&OpCode::Return));
-        // vec.push(OpCode::Return);
-        // vec.push(OpCode::Constant { constant_offset: 2 });
-        // println!("Size of Vec with return {:?}", size_of_val(&*vec));
-
-        // let mut chunk = Chunk::new();
-        // chunk.add_constant(3.0, 22).unwrap();
-        // chunk.add_constant(4.0, 22).unwrap();
-        // chunk.write_bytecode(OpCode::Return, 23);
+        assert_eq!(24, size_of_val(&chunk.code));
+        assert_eq!(24, size_of_val(&chunk.constant_pool));
+        assert_eq!(24, size_of_val(&chunk.lines));
+        assert_eq!(72, size_of_val(&chunk));
+        assert_eq!(8, size_of_val(&Value::Bool(true)));
+        assert_eq!(8, size_of_val(&Value::Number(3.3)));
+        assert_eq!(2, size_of_val(&OpCode::Return));
+        assert_eq!(2, size_of_val(&OpCode::True));
+        assert_eq!(8, size_of_val(&Value::Number(3.3)));
         // chunk.dissasemble();
     }
 }

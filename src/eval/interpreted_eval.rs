@@ -2,14 +2,14 @@ use crate::errors::ErrorKind;
 use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
-use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use crate::token::Token;
 use crate::Result;
 use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum EvalResult {
-    Number(f64),
+    Number(f32),
     String(String),
     Bool(bool),
     Nil,
@@ -50,7 +50,9 @@ fn handle_unary(token: &Token, evaled_expr: EvalResult) -> Result<EvalResult> {
     match (token.token_type, evaled_expr) {
         (TokenType::Minus, EvalResult::Number(the_num)) => Ok(EvalResult::Number(-the_num)),
         (TokenType::Bang, EvalResult::Bool(a_bool)) => Ok(EvalResult::Bool(!a_bool)),
-        (token_type, result) => build_eval_error(token.line, format!("{:?} {}", token_type, result))
+        (token_type, result) => {
+            build_eval_error(token.line, format!("{:?} {}", token_type, result))
+        }
     }
 }
 fn handle_binary(
@@ -66,8 +68,7 @@ fn handle_binary(
             Ok(EvalResult::String(x + y))
         }
         (TokenType::Plus, _, _) => {
-            let message =
-                "sum parameters must be both numbers or both strings".to_string();
+            let message = "sum parameters must be both numbers or both strings".to_string();
             build_eval_error(token.line, message)
         }
         (TokenType::Minus, EvalResult::Number(x), EvalResult::Number(y)) => {
@@ -75,8 +76,7 @@ fn handle_binary(
         }
         (TokenType::Minus, _, _) => {
             let message =
-                "substraction parameters must be both numbers or both strings"
-                    .to_string();
+                "substraction parameters must be both numbers or both strings".to_string();
             build_eval_error(token.line, message)
         }
         (TokenType::Star, EvalResult::Number(x), EvalResult::Number(y)) => {
@@ -84,8 +84,7 @@ fn handle_binary(
         }
         (TokenType::Star, _, _) => {
             let message =
-                "Multiplication parameters must be both numbers or both strings"
-                    .to_string();
+                "Multiplication parameters must be both numbers or both strings".to_string();
             build_eval_error(token.line, message)
         }
         (TokenType::Slash, EvalResult::Number(x), EvalResult::Number(y)) => {
@@ -97,8 +96,7 @@ fn handle_binary(
             }
         }
         (TokenType::Slash, _, _) => {
-            let message = "division parameters must be both numbers or both strings"
-                .to_string();
+            let message = "division parameters must be both numbers or both strings".to_string();
             build_eval_error(token.line, message)
         }
         (TokenType::Greater, EvalResult::Number(x), EvalResult::Number(y)) => {
@@ -114,10 +112,12 @@ fn handle_binary(
             Ok(EvalResult::Bool(x <= y))
         }
         (TokenType::BangEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
-            Ok(EvalResult::Bool(x != y))
+            let val = (x - y).abs() >= std::f32::EPSILON;
+            Ok(EvalResult::Bool(val))
         }
         (TokenType::EqualEqual, EvalResult::Number(x), EvalResult::Number(y)) => {
-            Ok(EvalResult::Bool(x == y))
+            let val = (x - y).abs() < std::f32::EPSILON;
+            Ok(EvalResult::Bool(val))
         }
         (TokenType::EqualEqual, EvalResult::String(x), EvalResult::String(y)) => {
             Ok(EvalResult::Bool(x == y))
@@ -135,23 +135,16 @@ fn handle_binary(
             build_eval_error(token.line, message)
         }
     }
-
 }
 
-fn build_eval_error(line: usize, message: String ) -> Result<EvalResult>{
-    let error = ReloxError::new_runtime_error(
-        line,
-        message,
-        ErrorKind::EvalError,
-    );
-    Err(error)
+fn build_eval_error(line: usize, message: String) -> Result<EvalResult> {
+    ReloxError::new_runtime_error(line, message, ErrorKind::EvalError)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Parser;
-    use crate::Scanner;
+    use crate::{parser::Parser, Scanner};
 
     #[test]
     fn test_binary_eval() {

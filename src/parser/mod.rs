@@ -2,9 +2,9 @@ use crate::errors::ErrorKind;
 use crate::errors::ReloxError;
 use crate::grammar::expr::Expr;
 use crate::grammar::expr::ExprLiteral;
-use crate::token::token::Literal as TokenLiteral;
-use crate::token::token::Token;
 use crate::token::token_type::TokenType;
+use crate::token::Literal as TokenLiteral;
+use crate::token::Token;
 use crate::Result;
 
 // expression     → equality ;
@@ -24,7 +24,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens:Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         // println!("The tokens are {:?}", tokens);
         Self { tokens, cursor: 0 }
     }
@@ -34,13 +34,9 @@ impl Parser {
         Ok(*expr)
     }
 
-    fn one_or_many<F>(
-        &mut self,
-        token_types: Vec<TokenType>,
-        mut f: F,
-    ) -> Result<Box<Expr>>
+    fn one_or_many<F>(&mut self, token_types: Vec<TokenType>, mut f: F) -> Result<Box<Expr>>
     where
-        F: FnMut(&mut Self) -> Result<Box<Expr>>
+        F: FnMut(&mut Self) -> Result<Box<Expr>>,
     {
         let left_expr = f(self)?;
         let mut left_expr = left_expr;
@@ -108,7 +104,7 @@ impl Parser {
 
     // primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Box<Expr>> {
-        if let Some(ref token) = self.tokens.get(self.cursor) {
+        if let Some(token) = self.tokens.get(self.cursor) {
             match (token.token_type, token.literal.as_ref()) {
                 (TokenType::True, _) => {
                     self.cursor += 1;
@@ -144,30 +140,21 @@ impl Parser {
                     )?;
                     Ok(Box::new(Expr::Grouping(expr)))
                 }
-                (TokenType::ErrorToken, _) => {
-                    let error = ReloxError::new_compile_error(
-                        token.line,
-                        format!("Unrecognized Character {:?}", token.lexeme),
-                        None,
-                        ErrorKind::ParserError
-                    );
-                    Err(error)
-                },
-                _token => {
-                    let error = ReloxError::new_compile_error(
-                        token.line,
-                        format!("Unparsable Expression {:?}", token.lexeme),
-                        None,
-                        ErrorKind::ParserError
-                    );
-                    Err(error)
-                }
+                (TokenType::ErrorToken, _) => ReloxError::new_compile_error(
+                    token.line,
+                    format!("Unrecognized Character {:?}", token.lexeme),
+                    None,
+                    ErrorKind::ParserError,
+                ),
+                _token => ReloxError::new_compile_error(
+                    token.line,
+                    format!("Unparsable Expression {:?}", token.lexeme),
+                    None,
+                    ErrorKind::ParserError,
+                ),
             }
         } else {
-            let error = ReloxError::new_fatal_error(
-              "Parser Error: out of bounds".to_string()
-            );
-            Err(error)
+            ReloxError::new_fatal_error("Parser Error: out of bounds".to_string())
         }
     }
 
@@ -177,28 +164,23 @@ impl Parser {
                 self.cursor += 1;
                 Ok(())
             } else if current_token.token_type == TokenType::Eof {
-                let error = ReloxError::new_compile_error(
+                ReloxError::new_compile_error(
                     current_token.line,
                     message.to_string(),
                     Some(" at the end".to_string()),
                     ErrorKind::ParserError,
-                );
-                Err(error)
+                )
             } else {
                 let where_at = format!(" at '{}'", current_token.lexeme);
-                let error = ReloxError::new_compile_error(
+                ReloxError::new_compile_error(
                     current_token.line,
                     "".to_string(),
                     Some(where_at),
                     ErrorKind::ParserError,
-                );
-                Err(error)
+                )
             }
         } else {
-            let error = ReloxError::new_fatal_error(
-                "Almost SEGFAULT".to_string()
-            );
-            Err(error)
+            ReloxError::new_fatal_error("Almost SEGFAULT".to_string())
         }
     }
 }
@@ -206,7 +188,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Scanner, errors::CompilationError};
+    use crate::{errors::CompilationError, Scanner};
 
     #[test]
     fn test_parsing_random0() {
@@ -262,7 +244,9 @@ mod tests {
         let tokens = scanner.scan_tokens().unwrap();
         let mut parser = Parser::new(tokens);
 
-        if let ReloxError::CompilationError(CompilationError { message, kind , ..}) = parser.parse().expect_err("should've been an error") {
+        if let ReloxError::CompilationError(CompilationError { message, kind, .. }) =
+            parser.parse().expect_err("should've been an error")
+        {
             assert_eq!(ErrorKind::ParserError, kind);
             assert_eq!("There should be a ')' after expression, duh.", message);
         } else {

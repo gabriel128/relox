@@ -1,8 +1,8 @@
-use crate::errors::{ReloxError, ErrorKind::LexError};
-use crate::Result;
-use crate::token::token::{Literal, Token};
+use crate::errors::{ErrorKind::LexError, ReloxError};
 use crate::token::token_type::TokenKind;
 use crate::token::token_type::TokenType;
+use crate::token::{Literal, Token};
+use crate::Result;
 
 #[derive(Debug)]
 pub struct Scanner {
@@ -53,18 +53,19 @@ impl Scanner {
             match TokenType::from_single_char(source_char) {
                 Some((token_type, TokenKind::SingleChar)) => self.add_token(token_type),
                 Some((token_type, TokenKind::OneOrTwoChar)) => self.handle_one_or_two(token_type),
-                Some((token_type, TokenKind::SlashOrComment)) => self.handle_slash_or_comment(token_type),
+                Some((token_type, TokenKind::SlashOrComment)) => {
+                    self.handle_slash_or_comment(token_type)
+                }
                 Some((TokenType::String, _)) => self.handle_string(),
                 Some((TokenType::Skip, _)) => {}
                 Some((TokenType::NewLine, _)) => self.line += 1,
                 Some((TokenType::Number, _)) => self.handle_number(),
-                Some(token_type) => {
-                        return Err(ReloxError::new_compile_error(
-                            self.line,
-                            format!("Unexpected token {:?}", token_type),
-                            None,
-                            LexError));
-                },
+                Some(token_type) => ReloxError::new_compile_error(
+                    self.line,
+                    format!("Unexpected token {:?}", token_type),
+                    None,
+                    LexError,
+                )?,
                 None => {
                     if source_char.is_ascii_alphabetic() {
                         self.handle_keyword_or_identifier();
@@ -76,7 +77,8 @@ impl Scanner {
 
             self.advance();
         }
-        self.tokens.push(Token::new(TokenType::Eof, "", None, self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "", None, self.line));
         Ok(())
     }
 
@@ -117,11 +119,11 @@ impl Scanner {
     }
 
     fn current_char(&self) -> Option<char> {
-        self.source_chars.get(self.current_index).map(|ch| *ch)
+        self.source_chars.get(self.current_index).copied()
     }
 
     fn next_char(&self) -> Option<char> {
-        self.source_chars.get(self.current_index + 1).map(|ch| *ch)
+        self.source_chars.get(self.current_index + 1).copied()
     }
 
     fn handle_keyword_or_identifier(&mut self) {
@@ -129,10 +131,12 @@ impl Scanner {
             if current_char.is_ascii_alphanumeric() {
                 self.advance();
             } else {
+                self.retreat();
                 break;
             }
         }
-        let lexeme = self.substring_source(self.start, self.current_index);
+
+        let lexeme = self.substring_source(self.start, self.current_index + 1);
 
         if let Some(keyword_type) = TokenType::keyword(&lexeme) {
             self.add_token_with_lexeme(keyword_type, &lexeme);
@@ -170,11 +174,10 @@ impl Scanner {
         if self.is_at_end() {
             self.tokens.push(Token::new(
                 TokenType::ErrorToken,
-                &the_string,
+                the_string,
                 None,
                 self.line,
             ));
-            return;
         } else {
             self.tokens.push(Token::new(
                 TokenType::String,
@@ -186,7 +189,7 @@ impl Scanner {
     }
 
     fn add_error_token(&mut self) {
-        if let Some(source_char) =  self.current_char() {
+        if let Some(source_char) = self.current_char() {
             self.tokens.push(Token::new(
                 TokenType::ErrorToken,
                 &source_char.to_string(),
@@ -217,12 +220,12 @@ impl Scanner {
         }
 
         let numstr = &self.substring_source(self.start, self.current_index + 1);
-        let num: Result<f64, _> = numstr.parse();
+        let num: Result<f32, _> = numstr.parse();
 
         self.tokens.push(Token::new(
             TokenType::Number,
             numstr,
-            num.ok().map(|the_num| Literal::Double(the_num)),
+            num.ok().map(Literal::Double),
             self.line,
         ));
     }

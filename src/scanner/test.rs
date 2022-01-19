@@ -223,3 +223,16 @@ fn mix_of_stuff() {
     ];
     assert_eq!(*tokens, result);
 }
+
+#[test]
+fn simple_parens() {
+    let tokens = Scanner::run_with("(true)".to_string()).unwrap();
+
+    let result = vec![
+        Token::new(TokenType::LeftParen, "(", None, 1),
+        Token::new(TokenType::True, "true", None, 1),
+        Token::new(TokenType::RightParen, ")", None, 1),
+        Token::new(TokenType::Eof, "", None, 1),
+    ];
+    assert_eq!(*tokens, result);
+}

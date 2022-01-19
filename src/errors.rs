@@ -1,3 +1,4 @@
+use crate::Result;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -5,10 +6,10 @@ pub enum ErrorKind {
     StackOverFlow,
     LexError,
     ParserError,
-    CompileError,
+    VmError,
     EvalError,
     Fatal,
-    IO
+    IO,
 }
 
 #[derive(Debug)]
@@ -36,7 +37,7 @@ pub enum ReloxError {
     CompilationError(CompilationError),
     RuntimeError(RuntimeError),
     FatalError(FatalError),
-    IOError(std::io::Error)
+    IOError(std::io::Error),
 }
 
 impl From<std::io::Error> for ReloxError {
@@ -46,30 +47,34 @@ impl From<std::io::Error> for ReloxError {
 }
 
 impl ReloxError {
-    pub fn new_compile_error(
+    pub fn new_compile_error<T>(
         line: usize,
         message: String,
         where_it_was: Option<String>,
         kind: ErrorKind,
-    ) -> Self {
-        Self::CompilationError(CompilationError {
+    ) -> Result<T> {
+        Err(Self::CompilationError(CompilationError {
             line,
             message,
             where_it_was,
             kind,
-        })
+        }))
     }
 
-    pub fn new_fatal_error(message: String) -> Self{
-       Self::FatalError(FatalError { message })
+    pub fn new_fatal_error<T>(message: String) -> Result<T> {
+        Err(ReloxError::new_unwrapped_fatal_error(message))
     }
 
-    pub fn new_runtime_error(line: usize, message: String, kind: ErrorKind) -> Self {
-        Self::RuntimeError(RuntimeError {
+    pub fn new_unwrapped_fatal_error(message: String) -> Self {
+        Self::FatalError(FatalError { message })
+    }
+
+    pub fn new_runtime_error<T>(line: usize, message: String, kind: ErrorKind) -> Result<T> {
+        Err(Self::RuntimeError(RuntimeError {
             line,
             message,
             kind,
-        })
+        }))
     }
 
     pub fn kind(&self) -> ErrorKind {
@@ -110,8 +115,8 @@ impl fmt::Display for ReloxError {
                 message,
                 kind,
             }) => write!(f, "[line {}] RuntimeError {:?}: {}", line, kind, message),
-            ReloxError::FatalError(FatalError { message }) => write!(f, "FatalError: {}", message),
-            ReloxError::IOError(error) => write!(f, "IOError: {}", error),
+            ReloxError::FatalError(FatalError { message }) => write!(f, "FatalError {}", message),
+            ReloxError::IOError(error) => write!(f, "IOError {}", error),
         }
     }
 }
